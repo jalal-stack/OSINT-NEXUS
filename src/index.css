@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+.markdown-content a {
+  @apply text-sky-400 hover:text-sky-300 underline underline-offset-4 transition-colors;
+}
+
+.markdown-content h1, .markdown-content h2, .markdown-content h3 {
+  @apply text-white font-bold mt-6 mb-3;
+}
+
+.markdown-content h1 { @apply text-xl; }
+.markdown-content h2 { @apply text-lg; }
+.markdown-content h3 { @apply text-base; }
+
+.markdown-content p {
+  @apply mb-4 text-slate-400 leading-relaxed;
+}
+
+.markdown-content ul, .markdown-content ol {
+  @apply mb-4 pl-5 text-slate-400;
+}
+
+.markdown-content li {
+  @apply mb-1;
+}
+
+.markdown-content code {
+  @apply bg-white/10 px-1.5 py-0.5 rounded text-sky-300 font-mono text-[10px];
+}

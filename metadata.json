@@ -1,0 +1,5 @@
+{
+  "name": "OSINT Nexus",
+  "description": "Advanced Open Source Intelligence Dashboard integrating multiple reconnaissance modules for comprehensive target analysis.",
+  "requestFramePermissions": []
+}
