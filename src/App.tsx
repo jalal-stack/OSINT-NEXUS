@@ -72,7 +72,8 @@ type ScanResult = {
   status: 'pending' | 'running' | 'completed' | 'error';
   data?: string;
   visualData?: {
-    nodes: { x: number, y: number, name: string, type: string, size: number }[];
+    nodes: { id: string, name: string, type: string, val?: number, x?: number, y?: number }[];
+    links?: { source: string, target: string, label: string }[];
     attributes: { subject: string, A: number, fullMark: number }[];
     wordFrequency?: { word: string, count: number }[];
     history?: { date: string, value: string, type: 'name' | 'username' }[];
@@ -136,15 +137,6 @@ const MODULES: OSINTModule[] = [
     source: 'github.com/Cgboal/SonarSearch',
     color: 'text-indigo-400',
     category: 'web'
-  },
-  { 
-    id: 'enigma', 
-    name: 'Enigma Bot', 
-    icon: <Lock className="w-4 h-4" />, 
-    description: 'Взаимодействие с Telegram-ботами и анализ утечек',
-    source: 'github.com/OSINT-searcher/telegram_bot_Enigma',
-    color: 'text-purple-400',
-    category: 'tg_id'
   },
   { 
     id: 'sherlock', 
@@ -246,15 +238,6 @@ const MODULES: OSINTModule[] = [
     category: 'tg_id'
   },
   {
-    id: 'tg-id-lookup',
-    name: 'TG ID Lookup',
-    icon: <MessageSquare className="w-4 h-4" />,
-    description: 'Поиск по Telegram ID или @username: телефоны, email, связанные аккаунты и метаданные',
-    source: 'internal/tg-id-lookup',
-    color: 'text-sky-300',
-    category: 'tg_id'
-  },
-  {
     id: 'tg-bot-recon',
     name: 'TG Bot Recon',
     icon: <Terminal className="w-4 h-4" />,
@@ -289,15 +272,6 @@ const MODULES: OSINTModule[] = [
     source: 'internal/identity-verifier',
     color: 'text-emerald-400',
     category: 'nickname'
-  },
-  {
-    id: 'sangatsumi',
-    name: 'Sangatsumi Bot',
-    icon: <Terminal className="w-4 h-4" />,
-    description: 'Агрегатор данных из закрытых Telegram-баз и утечек',
-    source: 'internal/sangatsumi',
-    color: 'text-rose-400',
-    category: 'tg_id'
   },
   {
     id: 'l3mon-recon',
@@ -342,6 +316,42 @@ const MODULES: OSINTModule[] = [
     description: 'Продвинутый анализ на ботов: паттерны постов, вовлеченность, сетевая активность и стоковые фото',
     source: 'internal/anti-fake-filter',
     color: 'text-rose-500',
+    category: 'all'
+  },
+  {
+    id: 'instaloader',
+    name: 'Instaloader',
+    icon: <Globe className="w-4 h-4" />,
+    description: 'Инструмент для сбора данных из Instagram: профили, посты, метаданные и связи',
+    source: 'github.com/instaloader/instaloader',
+    color: 'text-pink-500',
+    category: 'nickname'
+  },
+  {
+    id: 'ghunt',
+    name: 'GHunt',
+    icon: <Mail className="w-4 h-4" />,
+    description: 'Исследование Google-аккаунтов по адресу почты: сервисы, ID, активность и метаданные',
+    source: 'github.com/mxrch/ghunt',
+    color: 'text-red-400',
+    category: 'email'
+  },
+  {
+    id: 'theharvester',
+    name: 'theHarvester',
+    icon: <Search className="w-4 h-4" />,
+    description: 'Сбор email, поддоменов, хостов, имен сотрудников и открытых портов из публичных источников',
+    source: 'github.com/laramies/theharvester',
+    color: 'text-blue-300',
+    category: 'all'
+  },
+  {
+    id: 'neo4j-visual',
+    name: 'Neo4j Visual Layer',
+    icon: <Network className="w-4 h-4" />,
+    description: 'Графовая визуализация связей в стиле Neo4j для глубокого анализа отношений между сущностями',
+    source: 'internal/neo4j-layer',
+    color: 'text-emerald-500',
     category: 'all'
   }
 ];
@@ -508,22 +518,26 @@ export default function App() {
         const prompt = `Perform a ${searchType} OSINT analysis for the target: "${target}" using the methodology of ${module.name} (${module.description}). 
           
           Methodology Context:
-          - Use Maigret/Sherlock for initial account discovery.
+          - Use Maigret/Sherlock and Instaloader for initial account discovery.
           - Use WhatsMyName for verification of found accounts.
+          - Use Holehe to check email usage across 120+ services.
+          - Use GHunt for deep Google account reconnaissance.
+          - Use theHarvester for gathering emails, subdomains, and host information.
           - Use Maltego (Telegram) and Telethon for linking identities, building relationship graphs, and extracting MTProto-level metadata.
           - Use SpiderFoot and Recon-ng for final data enrichment. Specifically leverage Recon-ng's API modules for automated host discovery, domain detail extraction, and contact discovery (emails, names, profiles) across all search categories (nickname, email, web, phone, tg_id).
-          - For 'email' searches, prioritize Recon-ng's 'contacts' and 'domains' modules.
-          - For 'web' searches, prioritize Recon-ng's 'hosts' and 'domains' modules.
-          - For 'nickname' and 'tg_id' searches, prioritize Recon-ng's 'profiles' and 'contacts' modules for cross-platform identity linking.
-          - Use TeleOSinter, Enigma Bot, Sangatsumi, and L3MON for deep Telegram-specific reconnaissance and data breach correlation.
+          - For 'email' searches, strictly follow this sequence: theHarvester (discovery) -> Holehe (platform check) -> GHunt (Google deep dive) -> Final AI Synthesis.
+          - For 'web' searches, prioritize Recon-ng's 'hosts' and 'domains' modules, and theHarvester for broad reconnaissance.
+          - For 'nickname' and 'tg_id' searches, prioritize Recon-ng's 'profiles' and 'contacts' modules for cross-platform identity linking, and Instaloader for Instagram data.
+          - Use TeleOSinter and L3MON for deep Telegram-specific reconnaissance and data breach correlation.
           - Apply Google Dorking techniques for advanced information retrieval.
+          - VISUALIZATION: Structure the JSON output to support a Neo4j-style graph visualization. Ensure nodes and relationships are clearly defined to show the "web" of connections.
           
           Search for public leaks, social media profiles, network records, and associated metadata relevant to this ${searchType}. 
           
           ${searchType === 'phone' ? 'ОСОБОЕ ВНИМАНИЕ: Постарайся определить ИМЯ ВЛАДЕЛЬЦА (Owner Name), связанные аккаунты в мессенджерах (WhatsApp, Telegram), теги из телефонных книг и СВЯЗАННЫЕ EMAIL-АДРЕСА. Активно ищи данные в ВЕБ-АГРЕГАТОРАХ УТЕЧЕК (Breach Aggregators) для поиска исторических связей.' : ''}
           ${searchType === 'email' ? 'ОСОБОЕ ВНИМАНИЕ: Найди все связанные аккаунты в соцсетях, упоминания в УТЕЧКАХ ДАННЫХ (Breaches), связанные домены, имена владельцев и любые публичные профили (Google, Gravatar, LinkedIn и т.д.). Используй агрегаторы утечек для восстановления истории паролей и связанных контактов.' : ''}
           ${searchType === 'nickname' ? 'ОСОБОЕ ВНИМАНИЕ: Проверь подлинность никнейма на разных платформах. Если обнаружены связанные EMAIL-АДРЕСА или НОМЕРА ТЕЛЕФОНОВ, укажи их. Проведи кросс-верификацию данных профиля (фото, био, друзья).' : ''}
-          ${searchType === 'tg_id' ? 'ОСОБОЕ ВНИМАНИЕ: Проведи максимально глубокий поиск по Telegram ID или @username. Если предоставлен @username, сначала попытайся разрешить его в числовой ID. Твоя цель: найти НОМЕР ТЕЛЕФОНА, EMAIL-АДРЕСА, связанные аккаунты в других сервисах и соцсетях. Используй возможности Telethon для извлечения скрытых ID, метаданных сессий, DC-информации (Data Center), времени последнего входа и истории изменений. Активно ищи данные в ВЕБ-АГРЕГАТОРАХ УТЕЧЕК (Data Breach Aggregators) и сервисах, индексирующих ИСТОРИЮ Telegram-аккаунтов. Твоя задача — восстановить "Историю изменения имен", найти "Контактные связи" (связанные номера и ники) и проанализировать активность в группах (роли, паттерны сообщений, связи через ответы).' : ''}
+          ${searchType === 'tg_id' ? 'ОСОБОЕ ВНИМАНИЕ: Проведи максимально глубокий поиск по Telegram ID или @username. Если предоставлен @username, сначала попытайся разрешить его в числовой ID. Твоя цель: найти связанные аккаунты в других сервисах и соцсетях. Используй возможности Telethon для извлечения скрытых ID, метаданных сессий, DC-информации (Data Center), времени последнего входа и истории изменений. Активно ищи данные в ВЕБ-АГРЕГАТОРАХ УТЕЧЕК (Data Breach Aggregators) и сервисах, индексирующих ИСТОРИЮ Telegram-аккаунтов. Твоя задача — восстановить "Историю изменения имен", найти "Контактные связи" (связанные номера и ники) и проанализировать активность в группах (роли, паттерны сообщений, связи через ответы).' : ''}
           
           НОВЫЕ ТРЕБОВАНИЯ (Вариант 3 - Улучшенный):
           1. ПАРСИНГ СОЦСЕТЕЙ: Глубокое извлечение данных (подписчики, дата создания, активность, связанные ссылки, метаданные фото).
@@ -548,7 +562,8 @@ export default function App() {
           
           JSON Schema:
           {
-            "nodes": [{"x": number, "y": number, "name": string, "type": "account" | "server" | "email" | "phone", "size": number}],
+            "nodes": [{"id": string, "name": string, "type": "account" | "server" | "email" | "phone" | "domain" | "ip", "val": number}],
+            "links": [{"source": string, "target": string, "label": string}],
             "attributes": [{"subject": string, "A": number, "fullMark": 100}],
             "wordFrequency": [{"word": string, "count": number}],
             "history": [{"date": string, "value": string, "type": "name" | "username"}],
@@ -562,7 +577,7 @@ export default function App() {
               "adminCount": number
             }
           }
-          Ensure the JSON is valid and represents the relationships found.`;
+          Ensure the JSON is valid and represents the relationships found. Use "id" for nodes and reference them in "links".`;
 
         let response;
         try {
@@ -640,10 +655,12 @@ export default function App() {
           contents: `На основе следующих данных OSINT для цели "${target}", составь краткий, но информативный общий итог (Summary). 
           
           При анализе придерживайся методологии:
-          1. Обнаружение (Maigret/Sherlock)
-          2. Верификация (WhatsMyName)
-          3. Связи и графы (Maltego)
-          4. Обогащение данных (SpiderFoot)
+          1. Обнаружение (Maigret/Sherlock/theHarvester)
+          2. Верификация (WhatsMyName/Holehe)
+          3. Связи и графы (Maltego/GHunt)
+          4. Обогащение данных (SpiderFoot/Recon-ng)
+          
+          Для EMAIL-разведки строго следуй цепочке: theHarvester (поиск) -> Holehe (платформы) -> GHunt (Google) -> Итоговый AI-анализ.
           
           Выдели ключевые находки, уровни риска и рекомендации. 
           
@@ -1242,14 +1259,14 @@ export default function App() {
                           )}
 
                           {/* FunStat Bot Stats Grid */}
-                          {results[selectedModule].visualData.stats && (
+                          {results[selectedModule]?.visualData?.stats && (
                             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                               {[
-                                { label: 'Разнообразие', value: `${results[selectedModule].visualData.stats.diversity}%`, icon: Zap },
-                                { label: 'Ответы', value: `${results[selectedModule].visualData.stats.repliesPercent}%`, icon: MessageSquare },
-                                { label: 'Медиа', value: `${results[selectedModule].visualData.stats.mediaPercent}%`, icon: Globe },
-                                { label: 'Админ в', value: results[selectedModule].visualData.stats.adminCount, icon: Shield },
-                                { label: 'Любимый чат', value: results[selectedModule].visualData.stats.favoriteChat, icon: Network },
+                                { label: 'Разнообразие', value: `${results[selectedModule]?.visualData?.stats?.diversity}%`, icon: Zap },
+                                { label: 'Ответы', value: `${results[selectedModule]?.visualData?.stats?.repliesPercent}%`, icon: MessageSquare },
+                                { label: 'Медиа', value: `${results[selectedModule]?.visualData?.stats?.mediaPercent}%`, icon: Globe },
+                                { label: 'Админ в', value: results[selectedModule]?.visualData?.stats?.adminCount, icon: Shield },
+                                { label: 'Любимый чат', value: results[selectedModule]?.visualData?.stats?.favoriteChat, icon: Network },
                               ].map((s, i) => (
                                 <div key={i} className="bg-black/40 border border-white/5 rounded-lg p-3 text-center">
                                   <s.icon className="w-3 h-3 mx-auto mb-2 text-slate-500" />
@@ -1261,34 +1278,125 @@ export default function App() {
                           )}
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Relationship Map (Scatter) */}
-                            <div className="bg-black/40 border border-white/5 rounded-xl p-4">
-                              <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Социальный граф (Ответы)</h4>
-                              <div className="h-[200px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                                    <XAxis type="number" dataKey="x" hide />
-                                    <YAxis type="number" dataKey="y" hide />
-                                    <ZAxis type="number" dataKey="size" range={[50, 400]} />
-                                    <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#121214', border: '1px solid #ffffff10', borderRadius: '8px', fontSize: '10px' }} />
-                                    <Scatter name="Nodes" data={results[selectedModule].visualData.nodes} fill="#0ea5e9">
-                                      {results[selectedModule].visualData.nodes.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.type === 'account' ? '#0ea5e9' : entry.type === 'server' ? '#10b981' : '#f43f5e'} />
-                                      ))}
-                                      <LabelList dataKey="name" position="top" style={{ fill: '#94a3b8', fontSize: '8px', fontWeight: 'bold' }} />
-                                    </Scatter>
-                                  </ScatterChart>
-                                </ResponsiveContainer>
+                            {/* Relationship Map (Neo4j Style) */}
+                            <div className="bg-black/40 border border-white/5 rounded-xl p-4 overflow-hidden relative">
+                              <div className="flex items-center justify-between mb-4">
+                                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Граф связей (Neo4j Visual Layer)</h4>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-sky-500" />
+                                    <span className="text-[8px] text-slate-500 uppercase">Аккаунт</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                    <span className="text-[8px] text-slate-500 uppercase">Сервер</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="h-[250px] relative bg-black/20 rounded-lg border border-white/5 overflow-hidden">
+                                <svg width="100%" height="100%" viewBox="0 0 400 250" className="cursor-move">
+                                  <defs>
+                                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="15" refY="3.5" orient="auto">
+                                      <polygon points="0 0, 10 3.5, 0 7" fill="#ffffff20" />
+                                    </marker>
+                                  </defs>
+                                  {/* Render Links */}
+                                  {results[selectedModule]?.visualData?.links?.map((link, idx) => {
+                                    const sourceNode = results[selectedModule]?.visualData?.nodes.find(n => n.id === link.source);
+                                    const targetNode = results[selectedModule]?.visualData?.nodes.find(n => n.id === link.target);
+                                    if (!sourceNode || !targetNode) return null;
+                                    
+                                    // Generate random positions if not present (since AI might not provide x,y now)
+                                    const sourceX = (sourceNode as any).x || (Math.random() * 300 + 50);
+                                    const sourceY = (sourceNode as any).y || (Math.random() * 150 + 50);
+                                    const targetX = (targetNode as any).x || (Math.random() * 300 + 50);
+                                    const targetY = (targetNode as any).y || (Math.random() * 150 + 50);
+                                    
+                                    // Store positions back for consistency in this render
+                                    (sourceNode as any).x = sourceX;
+                                    (sourceNode as any).y = sourceY;
+                                    (targetNode as any).x = targetX;
+                                    (targetNode as any).y = targetY;
+
+                                    return (
+                                      <g key={`link-${idx}`}>
+                                        <line 
+                                          x1={sourceX} y1={sourceY} 
+                                          x2={targetX} y2={targetY} 
+                                          stroke="#ffffff10" 
+                                          strokeWidth="1"
+                                          markerEnd="url(#arrowhead)"
+                                        />
+                                        <text 
+                                          x={(sourceX + targetX) / 2} 
+                                          y={(sourceY + targetY) / 2} 
+                                          fill="#ffffff30" 
+                                          fontSize="6" 
+                                          textAnchor="middle"
+                                          dy="-4"
+                                        >
+                                          {link.label}
+                                        </text>
+                                      </g>
+                                    );
+                                  })}
+                                  {/* Render Nodes */}
+                                  {results[selectedModule]?.visualData?.nodes.map((node, idx) => {
+                                    const x = (node as any).x || (Math.random() * 300 + 50);
+                                    const y = (node as any).y || (Math.random() * 150 + 50);
+                                    (node as any).x = x;
+                                    (node as any).y = y;
+                                    
+                                    const color = node.type === 'account' ? '#0ea5e9' : 
+                                                  node.type === 'server' ? '#10b981' : 
+                                                  node.type === 'email' ? '#f59e0b' : 
+                                                  node.type === 'phone' ? '#f43f5e' : '#94a3b8';
+                                    
+                                    return (
+                                      <g key={`node-${idx}`} className="group cursor-pointer">
+                                        <circle 
+                                          cx={x} cy={y} r="12" 
+                                          fill={color} fillOpacity="0.2" 
+                                          stroke={color} strokeWidth="1.5"
+                                          className="transition-all group-hover:r-14 group-hover:fill-opacity-40"
+                                        />
+                                        <circle cx={x} cy={y} r="4" fill={color} />
+                                        <text 
+                                          x={x} y={y + 22} 
+                                          fill="white" 
+                                          fontSize="8" 
+                                          fontWeight="bold" 
+                                          textAnchor="middle"
+                                          className="pointer-events-none"
+                                        >
+                                          {node.name}
+                                        </text>
+                                        <text 
+                                          x={x} y={y + 30} 
+                                          fill="#ffffff40" 
+                                          fontSize="6" 
+                                          textAnchor="middle"
+                                          className="pointer-events-none uppercase tracking-tighter"
+                                        >
+                                          {node.type}
+                                        </text>
+                                      </g>
+                                    );
+                                  })}
+                                </svg>
+                                <div className="absolute bottom-2 right-2 flex gap-2">
+                                  <div className="px-2 py-1 rounded bg-black/60 border border-white/10 text-[8px] text-slate-400 uppercase font-bold">Neo4j Engine</div>
+                                </div>
                               </div>
                             </div>
 
                             {/* Activity Radar Chart */}
-                            {results[selectedModule].visualData.attributes && (
+                            {results[selectedModule]?.visualData?.attributes && (
                               <div className="bg-black/40 border border-white/5 rounded-xl p-4">
                                 <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Профиль активности</h4>
                                 <div className="h-[200px]">
                                   <ResponsiveContainer width="100%" height="100%">
-                                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={results[selectedModule].visualData.attributes}>
+                                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={results[selectedModule]?.visualData?.attributes}>
                                       <PolarGrid stroke="#ffffff10" />
                                       <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 8 }} />
                                       <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
