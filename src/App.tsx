@@ -53,7 +53,7 @@ import { cn } from './lib/utils';
 
 type HistoryItem = {
   target: string;
-  type: 'nickname' | 'email' | 'web' | 'phone' | 'tg_id';
+  type: 'nickname' | 'email' | 'web' | 'phone' | 'tg_id' | 'universal';
   timestamp: number;
 };
 
@@ -211,15 +211,6 @@ const MODULES: OSINTModule[] = [
     category: 'phone'
   },
   {
-    id: 'truesearch',
-    name: 'TrueSearch',
-    icon: <User className="w-4 h-4" />,
-    description: 'Идентификация владельца номера и поиск в базах контактов',
-    source: 'internal/nexus-truesearch',
-    color: 'text-sky-500',
-    category: 'phone'
-  },
-  {
     id: 'whatsmyname',
     name: 'WhatsMyName',
     icon: <Search className="w-4 h-4" />,
@@ -366,7 +357,7 @@ const MOCK_ACTIVITY_DATA = Array.from({ length: 20 }, (_, i) => ({
 
 export default function App() {
   const [target, setTarget] = useState('');
-  const [searchType, setSearchType] = useState<'nickname' | 'email' | 'web' | 'phone' | 'tg_id'>('nickname');
+  const [searchType, setSearchType] = useState<'nickname' | 'email' | 'web' | 'phone' | 'tg_id' | 'universal'>('universal');
   const [isScanning, setIsScanning] = useState(false);
   const [results, setResults] = useState<Record<string, ScanResult>>({});
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
@@ -374,148 +365,146 @@ export default function App() {
   const [generalSummary, setGeneralSummary] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showMaltegoInfo, setShowMaltegoInfo] = useState(false);
-  
-  // Load history from localStorage
-  useEffect(() => {
-    const savedHistory = localStorage.getItem('osint_nexus_history');
-    if (savedHistory) {
-      try {
-        setHistory(JSON.parse(savedHistory));
-      } catch (e) {
-        console.error("Failed to parse history", e);
-      }
-    }
-  }, []);
-
-  // Save history to localStorage
-  useEffect(() => {
-    localStorage.setItem('osint_nexus_history', JSON.stringify(history));
-  }, [history]);
+  const [discoveredEntities, setDiscoveredEntities] = useState<Set<string>>(new Set());
 
   const addLog = (msg: string) => {
-    setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev].slice(0, 50));
+    const time = new Date().toLocaleTimeString([], { hour12: false });
+    setLogs(prev => [`[${time}] ${msg}`, ...prev].slice(0, 50));
   };
 
   const exportToMaltego = () => {
-    // Collect all unique entities from results
-    const entities: { type: string, value: string }[] = [];
+    const nodes = Object.values(results)
+      .filter(r => r.visualData?.nodes)
+      .flatMap(r => r.visualData!.nodes);
     
-    Object.values(results).forEach(res => {
-      if (res.visualData?.nodes) {
-        res.visualData.nodes.forEach(node => {
-          entities.push({ type: node.type, value: node.name });
-        });
-      }
-    });
-
-    if (entities.length === 0) {
-      addLog("ПРЕДУПРЕЖДЕНИЕ: Нет данных для экспорта в Maltego.");
+    if (nodes.length === 0) {
+      addLog("ОШИБКА: Нет данных для экспорта.");
       return;
     }
 
-    // Generate CSV for Maltego
-    const headers = "Type,Value\n";
-    const rows = Array.from(new Set(entities.map(e => {
-      let maltegoType = "maltego.Phrase";
-      if (e.type === 'email') maltegoType = "maltego.EmailAddress";
-      if (e.type === 'phone') maltegoType = "maltego.PhoneNumber";
-      if (e.type === 'account') maltegoType = "maltego.Alias";
-      return `${maltegoType},"${e.value.replace(/"/g, '""')}"`;
-    }))) .join("\n");
-
-    const blob = new Blob([headers + rows], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `nexus_maltego_export_${new Date().getTime()}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + "ID,Name,Type\n"
+      + nodes.map(n => `${n.id},${n.name},${n.type}`).join("\n");
     
-    addLog("УСПЕХ: Данные экспортированы в формате CSV для Maltego.");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `nexus_export_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    addLog("CSV экспорт для Maltego успешно загружен.");
   };
 
-  const handleScan = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!target || isScanning) return;
+  const detectType = (val: string): 'nickname' | 'email' | 'web' | 'phone' | 'tg_id' => {
+    if (val.includes('@') && val.includes('.')) return 'email';
+    if (/^\+?\d{7,15}$/.test(val.replace(/[\s\-()]/g, ''))) return 'phone';
+    if (/^@[\w\d_]+$/.test(val)) return 'tg_id';
+    if (val.includes('.') && !val.includes(' ')) return 'web';
+    return 'nickname';
+  };
 
-    // Email validation for Holehe and other email modules
-    if (searchType === 'email') {
+  const handleScan = async (e?: React.FormEvent, manualTarget?: string, manualType?: 'nickname' | 'email' | 'web' | 'phone' | 'tg_id' | 'universal') => {
+    if (e) e.preventDefault();
+    
+    const currentTarget = manualTarget || target;
+    const currentType = manualType || searchType;
+
+    if (!currentTarget || isScanning) return;
+
+    const detectedType = currentType === 'universal' ? detectType(currentTarget) : currentType as any;
+
+    // Validation
+    if (detectedType === 'email') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(target)) {
-        addLog("ОШИБКА: Некорректный формат email. Введите валидный адрес (напр. user@example.com)");
-        return;
+      if (!emailRegex.test(currentTarget)) {
+        addLog("ОШИБКА: Некорректный формат email.");
+        if (!manualTarget) return;
       }
     }
 
-    // Phone validation for PhoneInfoga and TrueSearch
-    if (searchType === 'phone') {
-      const cleanPhone = target.replace(/[\s\-()]/g, '');
+    if (detectedType === 'phone') {
+      const cleanPhone = currentTarget.replace(/[\s\-()]/g, '');
       const phoneRegex = /^\+?\d{7,15}$/;
       if (!phoneRegex.test(cleanPhone)) {
-        addLog("ОШИБКА: Некорректный формат номера. Введите валидный номер (напр. +79991234567)");
-        return;
+        addLog("ОШИБКА: Некорректный формат номера.");
+        if (!manualTarget) return;
       }
     }
 
-    // Telegram ID validation
-    if (searchType === 'tg_id') {
+    if (detectedType === 'tg_id') {
       const tgIdRegex = /^(\d+|@[\w\d_]+)$/;
-      if (!tgIdRegex.test(target)) {
-        addLog("ОШИБКА: Некорректный формат TG ID. Введите числовой ID или @username");
-        return;
+      if (!tgIdRegex.test(currentTarget)) {
+        addLog("ОШИБКА: Некорректный формат TG ID.");
+        if (!manualTarget) return;
       }
     }
 
+    if (!manualTarget) {
+      setLogs([]);
+      setGeneralSummary(null);
+      setResults({});
+      setDiscoveredEntities(new Set([currentTarget]));
+    }
+    
     setIsScanning(true);
-    setLogs([]);
-    setGeneralSummary(null);
     setSelectedModule(null);
     
     if (!process.env.GEMINI_API_KEY) {
-      addLog("ОШИБКА: API ключ Gemini не найден. Проверьте настройки.");
+      addLog("ОШИБКА: API ключ Gemini не найден.");
       setIsScanning(false);
       return;
     }
 
-    addLog(`Инициализация Nexus Core для цели: ${target}`);
+    await runScanRound(currentTarget, detectedType);
     
-    // Add to history
-    const newHistoryItem: HistoryItem = {
-      target,
-      type: searchType,
-      timestamp: Date.now()
-    };
-    setHistory(prev => [newHistoryItem, ...prev.filter(h => h.target !== target || h.type !== searchType)].slice(0, 20));
+    if (!manualTarget) {
+      setIsScanning(false);
+      addLog("Все модули разведки и автоматические цепочки завершены.");
+      generateFinalSummary(currentTarget, detectedType);
+    }
+  };
 
-    const activeModules = MODULES.filter(m => m.category === searchType || m.category === 'all');
+  const runScanRound = async (currentTarget: string, detectedType: 'nickname' | 'email' | 'web' | 'phone' | 'tg_id' | 'universal', depth = 0) => {
+    if (depth > 2) return; // Limit recursion depth to 3 rounds
+
+    const actualType = detectedType === 'universal' ? detectType(currentTarget) : detectedType as any;
+
+    addLog(`[Round ${depth + 1}] Запуск Nexus Core для: ${currentTarget} (${actualType})`);
     
-    const currentResults: Record<string, ScanResult> = {};
+    // Add to history if it's the first round and manual target wasn't provided
+    if (depth === 0) {
+      const newHistoryItem: HistoryItem = {
+        target: currentTarget,
+        type: searchType,
+        timestamp: Date.now()
+      };
+      setHistory(prev => [newHistoryItem, ...prev.filter(h => h.target !== currentTarget)].slice(0, 20));
+    }
+
+    const activeModules = MODULES.filter(m => m.category === actualType || m.category === 'all');
+    
+    const roundResults: Record<string, ScanResult> = {};
     activeModules.forEach(m => {
-      currentResults[m.id] = { moduleId: m.id, status: 'pending' };
+      roundResults[m.id] = { moduleId: m.id, status: 'pending' };
     });
-    setResults(currentResults);
+    setResults(prev => ({ ...prev, ...roundResults }));
 
-    // Run modules in parallel with a small delay to avoid rate limits
     const scanPromises = activeModules.map(async (module, index) => {
-      // Stagger starts slightly
-      await new Promise(r => setTimeout(r, index * 800));
+      await new Promise(r => setTimeout(r, index * 600));
       
       setResults(prev => ({
         ...prev,
         [module.id]: { ...prev[module.id], status: 'running' }
       }));
       
-      // Auto-select the first module that starts running if nothing is selected
       setSelectedModule(prev => prev === null ? module.id : prev);
-      
-      addLog(`Запуск модуля ${module.name} для поиска по ${searchType}...`);
+      addLog(`[${module.name}] Анализ ${currentTarget}...`);
       
       try {
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
         
-        const prompt = `Perform a ${searchType} OSINT analysis for the target: "${target}" using the methodology of ${module.name} (${module.description}). 
+        const prompt = `Perform a ${detectedType} OSINT analysis for the target: "${currentTarget}" using the methodology of ${module.name} (${module.description}). 
           
           Methodology Context:
           - Use Maigret/Sherlock and Instaloader for initial account discovery.
@@ -532,12 +521,12 @@ export default function App() {
           - Apply Google Dorking techniques for advanced information retrieval.
           - VISUALIZATION: Structure the JSON output to support a Neo4j-style graph visualization. Ensure nodes and relationships are clearly defined to show the "web" of connections.
           
-          Search for public leaks, social media profiles, network records, and associated metadata relevant to this ${searchType}. 
+          Search for public leaks, social media profiles, network records, and associated metadata relevant to this ${detectedType}. 
           
-          ${searchType === 'phone' ? 'ОСОБОЕ ВНИМАНИЕ: Постарайся определить ИМЯ ВЛАДЕЛЬЦА (Owner Name), связанные аккаунты в мессенджерах (WhatsApp, Telegram), теги из телефонных книг и СВЯЗАННЫЕ EMAIL-АДРЕСА. Активно ищи данные в ВЕБ-АГРЕГАТОРАХ УТЕЧЕК (Breach Aggregators) для поиска исторических связей.' : ''}
-          ${searchType === 'email' ? 'ОСОБОЕ ВНИМАНИЕ: Найди все связанные аккаунты в соцсетях, упоминания в УТЕЧКАХ ДАННЫХ (Breaches), связанные домены, имена владельцев и любые публичные профили (Google, Gravatar, LinkedIn и т.д.). Используй агрегаторы утечек для восстановления истории паролей и связанных контактов.' : ''}
-          ${searchType === 'nickname' ? 'ОСОБОЕ ВНИМАНИЕ: Проверь подлинность никнейма на разных платформах. Если обнаружены связанные EMAIL-АДРЕСА или НОМЕРА ТЕЛЕФОНОВ, укажи их. Проведи кросс-верификацию данных профиля (фото, био, друзья).' : ''}
-          ${searchType === 'tg_id' ? 'ОСОБОЕ ВНИМАНИЕ: Проведи максимально глубокий поиск по Telegram ID или @username. Если предоставлен @username, сначала попытайся разрешить его в числовой ID. Твоя цель: найти связанные аккаунты в других сервисах и соцсетях. Используй возможности Telethon для извлечения скрытых ID, метаданных сессий, DC-информации (Data Center), времени последнего входа и истории изменений. Активно ищи данные в ВЕБ-АГРЕГАТОРАХ УТЕЧЕК (Data Breach Aggregators) и сервисах, индексирующих ИСТОРИЮ Telegram-аккаунтов. Твоя задача — восстановить "Историю изменения имен", найти "Контактные связи" (связанные номера и ники) и проанализировать активность в группах (роли, паттерны сообщений, связи через ответы).' : ''}
+          ${detectedType === 'phone' ? 'ОСОБОЕ ВНИМАНИЕ: Постарайся определить ИМЯ ВЛАДЕЛЬЦА (Owner Name), связанные аккаунты в мессенджерах (WhatsApp, Telegram), теги из телефонных книг и СВЯЗАННЫЕ EMAIL-АДРЕСА. Активно ищи данные в ВЕБ-АГРЕГАТОРАХ УТЕЧЕК (Breach Aggregators) для поиска исторических связей.' : ''}
+          ${detectedType === 'email' ? 'ОСОБОЕ ВНИМАНИЕ: Найди все связанные аккаунты в соцсетях, упоминания в УТЕЧКАХ ДАННЫХ (Breaches), связанные домены, имена владельцев и любые публичные профили (Google, Gravatar, LinkedIn и т.д.). Используй агрегаторы утечек для восстановления истории паролей и связанных контактов.' : ''}
+          ${detectedType === 'nickname' ? 'ОСОБОЕ ВНИМАНИЕ: Проверь подлинность никнейма на разных платформах. Если обнаружены связанные EMAIL-АДРЕСА или НОМЕРА ТЕЛЕФОНОВ, укажи их. Проведи кросс-верификацию данных профиля (фото, био, друзья).' : ''}
+          ${detectedType === 'tg_id' ? 'ОСОБОЕ ВНИМАНИЕ: Проведи максимально глубокий поиск по Telegram ID или @username. Если предоставлен @username, сначала попытайся разрешить его в числовой ID. Твоя цель: найти связанные аккаунты в других сервисах и соцсетях. Используй возможности Telethon для извлечения скрытых ID, метаданных сессий, DC-информации (Data Center), времени последнего входа и истории изменений. Активно ищи данные в ВЕБ-АГРЕГАТОРАХ УТЕЧЕК (Data Breach Aggregators) и сервисах, индексирующих ИСТОРИЮ Telegram-аккаунтов. Твоя задача — восстановить "Историю изменения имен", найти "Контактные связи" (связанные номера и ники) и проанализировать активность в группах (роли, паттерны сообщений, связи через ответы).' : ''}
           
           НОВЫЕ ТРЕБОВАНИЯ (Вариант 3 - Улучшенный):
           1. ПАРСИНГ СОЦСЕТЕЙ: Глубокое извлечение данных (подписчики, дата создания, активность, связанные ссылки, метаданные фото).
@@ -584,13 +573,9 @@ export default function App() {
           response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
             contents: prompt,
-            config: {
-              tools: [{ googleSearch: {} }]
-            }
+            config: { tools: [{ googleSearch: {} }] }
           });
         } catch (toolError) {
-          console.warn(`Retrying ${module.name} without googleSearch tool...`, toolError);
-          // Retry without googleSearch if it fails (some regions or keys might not support it)
           response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
             contents: prompt
@@ -607,88 +592,86 @@ export default function App() {
             const jsonStr = jsonMatch[1].trim();
             visualData = JSON.parse(jsonStr);
             markdown = text.replace(jsonMatch[0], '');
+            
+            // AUTO-CHAIN LOGIC: Extract new entities for next round
+            if (visualData.nodes && depth < 2) {
+              const newEntities = visualData.nodes
+                .filter((n: any) => n.type === 'email' || n.type === 'phone' || n.type === 'account')
+                .map((n: any) => n.name)
+                .filter((name: string) => !discoveredEntities.has(name));
+
+              if (newEntities.length > 0) {
+                addLog(`[Auto-Chain] Обнаружены новые сущности: ${newEntities.join(', ')}. Запуск следующего этапа...`);
+                await Promise.all(newEntities.map(async (entity: string) => {
+                  setDiscoveredEntities(prev => new Set([...prev, entity]));
+                  await runScanRound(entity, 'universal', depth + 1);
+                }));
+              }
+            }
           } catch (e) {
             console.error("Failed to parse visual data", e);
-            addLog(`Предупреждение: Ошибка парсинга визуальных данных для ${module.name}`);
           }
         }
 
         const result: ScanResult = { moduleId: module.id, status: 'completed', data: markdown, visualData };
-        currentResults[module.id] = result;
-        setResults(prev => ({
-          ...prev,
-          [module.id]: result
-        }));
-        addLog(`${module.name}: Сканирование завершено.`);
+        setResults(prev => ({ ...prev, [module.id]: result }));
+        addLog(`[${module.name}] Завершено.`);
       } catch (error) {
         const errorResult: ScanResult = { moduleId: module.id, status: 'error', error: 'Module execution failed' };
-        currentResults[module.id] = errorResult;
-        setResults(prev => ({
-          ...prev,
-          [module.id]: errorResult
-        }));
+        setResults(prev => ({ ...prev, [module.id]: errorResult }));
         addLog(`Ошибка в модуле ${module.name}: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
       }
     });
 
     await Promise.all(scanPromises);
+  };
 
-    setIsScanning(false);
-    addLog("Все модули разведки завершены.");
+  const generateFinalSummary = async (currentTarget: string, detectedType: string) => {
+    addLog("Генерация финального AI отчета...");
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const successfulResults = Object.entries(results).filter(([_, r]) => r.status === 'completed' && r.data);
+      const allData = successfulResults
+        .map(([id, r]) => {
+          const moduleName = MODULES.find(m => m.id === id)?.name || id;
+          return `### ${moduleName}\n${r.data}`;
+        })
+        .join('\n\n');
 
-    // Generate General Summary
-    const successfulResults = Object.entries(currentResults).filter(([_, r]) => r.status === 'completed' && r.data);
-    
-    if (successfulResults.length > 0) {
-      addLog("Генерация общего отчета разведки...");
-      try {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const allData = successfulResults
-          .map(([id, r]) => {
-            const moduleName = MODULES.find(m => m.id === id)?.name || id;
-            return `### ${moduleName}\n${r.data}`;
-          })
-          .join('\n\n');
+      const summaryResponse = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `На основе всех данных OSINT для цели "${currentTarget}", составь итоговый отчет.
+        
+        СТРУКТУРА ОТЧЕТА:
+        1. **Вероятность идентификации**: (Укажи процент вероятности, напр. 82%)
+        2. **Найденные аккаунты**: (Список подтвержденных соцсетей и мессенджеров)
+        3. **Связи**: (Почему мы считаем, что это один человек? Напр. совпадает bio, username, фото)
+        4. **Риск**: (Оценка активности, потенциальные угрозы, признаки фейка)
+        
+        При анализе придерживайся методологии:
+        1. Обнаружение (Maigret/Sherlock/theHarvester)
+        2. Верификация (WhatsMyName/Holehe)
+        3. Связи и графы (Maltego/GHunt)
+        4. Обогащение данных (SpiderFoot/Recon-ng)
+        
+        Для EMAIL-разведки строго следуй цепочке: theHarvester (поиск) -> Holehe (платформы) -> GHunt (Google) -> Итоговый AI-анализ.
+        
+        ОБЯЗАТЕЛЬНО: Добавь раздел "### 🛡️ Анализ подлинности (Anti-Fake Filter)", где оценишь достоверность найденных аккаунтов.
+        ОБЯЗАТЕЛЬНО: Добавь раздел "### 📂 Утечки и История (Breach & History)".
+        ОБЯЗАТЕЛЬНО: Собери все ссылки в "### 🌐 Сводный список ресурсов".
+        
+        Весь текст на РУССКОМ языке в Markdown.
+        КРИТИЧЕСКИ ВАЖНО: Никогда не скрывай данные (номера, email).
+        
+        Данные от модулей:
+        ${allData}`,
+      });
 
-        const summaryResponse = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
-          contents: `На основе следующих данных OSINT для цели "${target}", составь краткий, но информативный общий итог (Summary). 
-          
-          При анализе придерживайся методологии:
-          1. Обнаружение (Maigret/Sherlock/theHarvester)
-          2. Верификация (WhatsMyName/Holehe)
-          3. Связи и графы (Maltego/GHunt)
-          4. Обогащение данных (SpiderFoot/Recon-ng)
-          
-          Для EMAIL-разведки строго следуй цепочке: theHarvester (поиск) -> Holehe (платформы) -> GHunt (Google) -> Итоговый AI-анализ.
-          
-          Выдели ключевые находки, уровни риска и рекомендации. 
-          
-          ${searchType === 'phone' ? 'ОБЯЗАТЕЛЬНО: В самом начале укажи наиболее вероятное ИМЯ ВЛАДЕЛЬЦА (Owner Identification), если оно было найдено.' : ''}
-          
-          ОБЯЗАТЕЛЬНО: Добавь раздел "### 🛡️ Анализ подлинности (Anti-Fake Filter)", где оценишь достоверность найденных аккаунтов. Проанализируй частоту постов, вовлеченность и стиль общения для выявления ботов.
-          
-          ОБЯЗАТЕЛЬНО: Добавь раздел "### 📂 Утечки и История (Breach & History)", где перечислишь все найденные упоминания в базах данных утечек, историю изменения имен/ников и любые архивные связи.
-          
-          ОБЯЗАТЕЛЬНО: Собери все найденные ссылки на социальные сети и ресурсы в отдельный финальный список "### 🌐 Сводный список ресурсов".
-          
-          Весь текст должен быть на РУССКОМ языке в формате Markdown.
-          
-          КРИТИЧЕСКИ ВАЖНО: Никогда не скрывай и не маскируй найденные данные (номера телефонов, email, адреса). Выводи их ПОЛНОСТЬЮ, без использования звездочек (*) или символов X. Если данные найдены, они должны быть представлены в исходном виде.
-          
-          Данные от модулей:
-          ${allData}`,
-        });
-
-        setGeneralSummary(summaryResponse.text || null);
-        addLog("Общий отчет успешно сформирован.");
-        setSelectedModule('summary');
-      } catch (error) {
-        console.error("Summary generation failed", error);
-        addLog("Ошибка при генерации общего отчета.");
-      }
-    } else {
-      addLog("Недостаточно данных для генерации общего отчета.");
+      setGeneralSummary(summaryResponse.text || "Ошибка генерации отчета.");
+      addLog("Финальный отчет готов.");
+    } catch (err) {
+      console.error(err);
+      addLog("Ошибка при генерации финального отчета.");
     }
   };
 
@@ -815,8 +798,9 @@ export default function App() {
             </div>
 
             {/* Search Type Selector */}
-            <div className="grid grid-cols-5 gap-1 p-1 bg-black/40 border border-white/5 rounded-lg">
+            <div className="grid grid-cols-6 gap-1 p-1 bg-black/40 border border-white/5 rounded-lg">
               {[
+                { id: 'universal', icon: Zap, label: 'Все' },
                 { id: 'nickname', icon: User, label: 'Ник' },
                 { id: 'email', icon: Mail, label: 'Email' },
                 { id: 'web', icon: Globe, label: 'Сайт/IP' },
@@ -847,6 +831,7 @@ export default function App() {
                   value={target}
                   onChange={(e) => setTarget(e.target.value)}
                   placeholder={
+                    searchType === 'universal' ? "Ник, Email или Телефон..." :
                     searchType === 'nickname' ? "Введите никнейм..." :
                     searchType === 'email' ? "Введите email..." :
                     searchType === 'web' ? "Введите домен или IP..." :
@@ -856,9 +841,11 @@ export default function App() {
                   }
                   className={cn(
                     "w-full bg-black/40 border rounded-lg py-2.5 pl-10 pr-4 text-sm focus:outline-none transition-colors placeholder:text-slate-600",
-                    (searchType === 'email' && target && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target)) ||
-                    (searchType === 'phone' && target && !/^\+?\d{7,15}$/.test(target.replace(/[\s\-()]/g, ''))) ||
-                    (searchType === 'tg_id' && target && !/^(\d+|@[\w\d_]+)$/.test(target))
+                    (searchType !== 'universal' && (
+                      (searchType === 'email' && target && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target)) ||
+                      (searchType === 'phone' && target && !/^\+?\d{7,15}$/.test(target.replace(/[\s\-()]/g, ''))) ||
+                      (searchType === 'tg_id' && target && !/^(\d+|@[\w\d_]+)$/.test(target))
+                    ))
                       ? "border-rose-500/50 focus:border-rose-500"
                       : "border-white/10 focus:border-sky-500/50"
                   )}
@@ -1353,9 +1340,17 @@ export default function App() {
                                                   node.type === 'phone' ? '#f43f5e' : '#94a3b8';
                                     
                                     return (
-                                      <g key={`node-${idx}`} className="group cursor-pointer">
+                                      <g 
+                                        key={`node-${idx}`} 
+                                        className="group cursor-pointer"
+                                        onClick={() => {
+                                          if (!isScanning) {
+                                            handleScan(undefined, node.name, 'universal');
+                                          }
+                                        }}
+                                      >
                                         <circle 
-                                          cx={x} cy={y} r="12" 
+                                          cx={x} cy={y} r={node.val ? 10 + (node.val / 10) : 12} 
                                           fill={color} fillOpacity="0.2" 
                                           stroke={color} strokeWidth="1.5"
                                           className="transition-all group-hover:r-14 group-hover:fill-opacity-40"
