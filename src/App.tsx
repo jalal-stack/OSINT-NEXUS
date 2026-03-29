@@ -18,7 +18,10 @@ import {
   User,
   Mail,
   Phone,
-  ExternalLink
+  ExternalLink,
+  History,
+  Download,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI } from "@google/genai";
@@ -73,6 +76,8 @@ type ScanResult = {
     attributes: { subject: string, A: number, fullMark: number }[];
     wordFrequency?: { word: string, count: number }[];
     history?: { date: string, value: string, type: 'name' | 'username' }[];
+    trustScore?: number;
+    fakeIndicators?: string[];
     stats?: {
       diversity: number;
       repliesPercent: number;
@@ -94,16 +99,16 @@ const MODULES: OSINTModule[] = [
     description: 'Анализ метаданных Telegram и связей пользователей',
     source: 'github.com/C3EQUALZz/TeleOSinter',
     color: 'text-sky-400',
-    category: 'nickname'
+    category: 'tg_id'
   },
   { 
     id: 'recon-ng', 
     name: 'Recon-ng', 
     icon: <Network className="w-4 h-4" />, 
-    description: 'Полнофункциональный фреймворк для веб-разведки',
+    description: 'Полнофункциональный фреймворк для глубокой OSINT-разведки: поиск контактов, хостов, доменов и связей через API-модули',
     source: 'github.com/lanmaster53/recon-ng',
     color: 'text-emerald-400',
-    category: 'web'
+    category: 'all'
   },
   { 
     id: 'ghosttrack', 
@@ -139,16 +144,7 @@ const MODULES: OSINTModule[] = [
     description: 'Взаимодействие с Telegram-ботами и анализ утечек',
     source: 'github.com/OSINT-searcher/telegram_bot_Enigma',
     color: 'text-purple-400',
-    category: 'nickname'
-  },
-  { 
-    id: 'reconspider', 
-    name: 'ReconSpider', 
-    icon: <Cpu className="w-4 h-4" />, 
-    description: 'Продвинутый универсальный OSINT-фреймворк',
-    source: 'github.com/bhavsec/reconspider',
-    color: 'text-cyan-400',
-    category: 'all'
+    category: 'tg_id'
   },
   { 
     id: 'sherlock', 
@@ -247,13 +243,13 @@ const MODULES: OSINTModule[] = [
     description: 'Визуализация связей и графов в Telegram',
     source: 'github.com/vognik/maltego-telegram',
     color: 'text-indigo-500',
-    category: 'nickname'
+    category: 'tg_id'
   },
   {
     id: 'tg-id-lookup',
     name: 'TG ID Lookup',
     icon: <MessageSquare className="w-4 h-4" />,
-    description: 'Поиск аккаунта, номера телефона и метаданных по Telegram ID',
+    description: 'Поиск по Telegram ID или @username: телефоны, email, связанные аккаунты и метаданные',
     source: 'internal/tg-id-lookup',
     color: 'text-sky-300',
     category: 'tg_id'
@@ -271,7 +267,7 @@ const MODULES: OSINTModule[] = [
     id: 'tele-deep-recon',
     name: 'Tele-Deep Recon',
     icon: <Network className="w-4 h-4" />,
-    description: 'Глубокий анализ связей, активности в группах и метаданных сообщений',
+    description: 'Глубокий анализ активности в группах, ролей, паттернов сообщений и метаданных',
     source: 'internal/tele-deep-recon',
     color: 'text-indigo-400',
     category: 'tg_id'
@@ -295,10 +291,55 @@ const MODULES: OSINTModule[] = [
     category: 'nickname'
   },
   {
+    id: 'sangatsumi',
+    name: 'Sangatsumi Bot',
+    icon: <Terminal className="w-4 h-4" />,
+    description: 'Агрегатор данных из закрытых Telegram-баз и утечек',
+    source: 'internal/sangatsumi',
+    color: 'text-rose-400',
+    category: 'tg_id'
+  },
+  {
+    id: 'l3mon-recon',
+    name: 'L3MON Recon',
+    icon: <Zap className="w-4 h-4" />,
+    description: 'Поиск связей аккаунтов и истории активности в Telegram',
+    source: 'github.com/D4Vinci/L3MON',
+    color: 'text-yellow-500',
+    category: 'tg_id'
+  },
+  {
+    id: 'tg-history-bot',
+    name: 'TG History Bot',
+    icon: <History className="w-4 h-4" />,
+    description: 'Архив изменений профилей и истории юзернеймов',
+    source: 'internal/tg-history',
+    color: 'text-blue-300',
+    category: 'tg_id'
+  },
+  {
+    id: 'telethon',
+    name: 'Telethon Recon',
+    icon: <MessageSquare className="w-4 h-4" />,
+    description: 'Глубокое взаимодействие с Telegram API (MTProto): извлечение скрытых ID, метаданных сессий, DC-информации и истории через API-вызовы',
+    source: 'github.com/lonamiwebs/telethon',
+    color: 'text-blue-400',
+    category: 'tg_id'
+  },
+  {
+    id: 'google-dorking',
+    name: 'Google Dorking',
+    icon: <Search className="w-4 h-4" />,
+    description: 'Использование продвинутых поисковых операторов для поиска скрытой информации',
+    source: 'internal/google-dorking',
+    color: 'text-orange-500',
+    category: 'all'
+  },
+  {
     id: 'anti-fake-engine',
     name: 'Anti-Fake Engine',
     icon: <AlertCircle className="w-4 h-4" />,
-    description: 'Фильтрация фейковых аккаунтов и ботов на основе паттернов',
+    description: 'Продвинутый анализ на ботов: паттерны постов, вовлеченность, сетевая активность и стоковые фото',
     source: 'internal/anti-fake-filter',
     color: 'text-rose-500',
     category: 'all'
@@ -322,6 +363,7 @@ export default function App() {
   const [logs, setLogs] = useState<string[]>([]);
   const [generalSummary, setGeneralSummary] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [showMaltegoInfo, setShowMaltegoInfo] = useState(false);
   
   // Load history from localStorage
   useEffect(() => {
@@ -342,6 +384,46 @@ export default function App() {
 
   const addLog = (msg: string) => {
     setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev].slice(0, 50));
+  };
+
+  const exportToMaltego = () => {
+    // Collect all unique entities from results
+    const entities: { type: string, value: string }[] = [];
+    
+    Object.values(results).forEach(res => {
+      if (res.visualData?.nodes) {
+        res.visualData.nodes.forEach(node => {
+          entities.push({ type: node.type, value: node.name });
+        });
+      }
+    });
+
+    if (entities.length === 0) {
+      addLog("ПРЕДУПРЕЖДЕНИЕ: Нет данных для экспорта в Maltego.");
+      return;
+    }
+
+    // Generate CSV for Maltego
+    const headers = "Type,Value\n";
+    const rows = Array.from(new Set(entities.map(e => {
+      let maltegoType = "maltego.Phrase";
+      if (e.type === 'email') maltegoType = "maltego.EmailAddress";
+      if (e.type === 'phone') maltegoType = "maltego.PhoneNumber";
+      if (e.type === 'account') maltegoType = "maltego.Alias";
+      return `${maltegoType},"${e.value.replace(/"/g, '""')}"`;
+    }))) .join("\n");
+
+    const blob = new Blob([headers + rows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nexus_maltego_export_${new Date().getTime()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    addLog("УСПЕХ: Данные экспортированы в формате CSV для Maltego.");
   };
 
   const handleScan = async (e: React.FormEvent) => {
@@ -380,6 +462,13 @@ export default function App() {
     setLogs([]);
     setGeneralSummary(null);
     setSelectedModule(null);
+    
+    if (!process.env.GEMINI_API_KEY) {
+      addLog("ОШИБКА: API ключ Gemini не найден. Проверьте настройки.");
+      setIsScanning(false);
+      return;
+    }
+
     addLog(`Инициализация Nexus Core для цели: ${target}`);
     
     // Add to history
@@ -398,45 +487,60 @@ export default function App() {
     });
     setResults(currentResults);
 
-    // Simulate sequential module execution
-    for (const module of activeModules) {
+    // Run modules in parallel with a small delay to avoid rate limits
+    const scanPromises = activeModules.map(async (module, index) => {
+      // Stagger starts slightly
+      await new Promise(r => setTimeout(r, index * 800));
+      
       setResults(prev => ({
         ...prev,
         [module.id]: { ...prev[module.id], status: 'running' }
       }));
-      addLog(`Running ${module.name} module for ${searchType} search...`);
+      
+      // Auto-select the first module that starts running if nothing is selected
+      setSelectedModule(prev => prev === null ? module.id : prev);
+      
+      addLog(`Запуск модуля ${module.name} для поиска по ${searchType}...`);
       
       try {
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const response = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
-          contents: `Perform a ${searchType} OSINT analysis for the target: "${target}" using the methodology of ${module.name} (${module.description}). 
+        
+        const prompt = `Perform a ${searchType} OSINT analysis for the target: "${target}" using the methodology of ${module.name} (${module.description}). 
           
           Methodology Context:
           - Use Maigret/Sherlock for initial account discovery.
           - Use WhatsMyName for verification of found accounts.
-          - Use Maltego (Telegram) for linking identities and building relationship graphs.
-          - Use SpiderFoot for final data enrichment and correlation.
+          - Use Maltego (Telegram) and Telethon for linking identities, building relationship graphs, and extracting MTProto-level metadata.
+          - Use SpiderFoot and Recon-ng for final data enrichment. Specifically leverage Recon-ng's API modules for automated host discovery, domain detail extraction, and contact discovery (emails, names, profiles) across all search categories (nickname, email, web, phone, tg_id).
+          - For 'email' searches, prioritize Recon-ng's 'contacts' and 'domains' modules.
+          - For 'web' searches, prioritize Recon-ng's 'hosts' and 'domains' modules.
+          - For 'nickname' and 'tg_id' searches, prioritize Recon-ng's 'profiles' and 'contacts' modules for cross-platform identity linking.
+          - Use TeleOSinter, Enigma Bot, Sangatsumi, and L3MON for deep Telegram-specific reconnaissance and data breach correlation.
+          - Apply Google Dorking techniques for advanced information retrieval.
           
           Search for public leaks, social media profiles, network records, and associated metadata relevant to this ${searchType}. 
           
-          ${searchType === 'phone' ? 'ОСОБОЕ ВНИМАНИЕ: Постарайся определить ИМЯ ВЛАДЕЛЬЦА (Owner Name), связанные аккаунты в мессенджерах (WhatsApp, Telegram), теги из телефонных книг и СВЯЗАННЫЕ EMAIL-АДРЕСА.' : ''}
-          ${searchType === 'email' ? 'ОСОБОЕ ВНИМАНИЕ: Найди все связанные аккаунты в соцсетях, упоминания в утечках данных (Breaches), связанные домены, имена владельцев и любые публичные профили (Google, Gravatar, LinkedIn и т.д.).' : ''}
+          ${searchType === 'phone' ? 'ОСОБОЕ ВНИМАНИЕ: Постарайся определить ИМЯ ВЛАДЕЛЬЦА (Owner Name), связанные аккаунты в мессенджерах (WhatsApp, Telegram), теги из телефонных книг и СВЯЗАННЫЕ EMAIL-АДРЕСА. Активно ищи данные в ВЕБ-АГРЕГАТОРАХ УТЕЧЕК (Breach Aggregators) для поиска исторических связей.' : ''}
+          ${searchType === 'email' ? 'ОСОБОЕ ВНИМАНИЕ: Найди все связанные аккаунты в соцсетях, упоминания в УТЕЧКАХ ДАННЫХ (Breaches), связанные домены, имена владельцев и любые публичные профили (Google, Gravatar, LinkedIn и т.д.). Используй агрегаторы утечек для восстановления истории паролей и связанных контактов.' : ''}
           ${searchType === 'nickname' ? 'ОСОБОЕ ВНИМАНИЕ: Проверь подлинность никнейма на разных платформах. Если обнаружены связанные EMAIL-АДРЕСА или НОМЕРА ТЕЛЕФОНОВ, укажи их. Проведи кросс-верификацию данных профиля (фото, био, друзья).' : ''}
-          ${searchType === 'tg_id' ? 'ОСОБОЕ ВНИМАНИЕ: Найди НОМЕР ТЕЛЕФОНА и EMAIL-АДРЕС, связанные с этим Telegram ID, имя пользователя, историю имен, связанные группы и любые другие метаданные. Проанализируй активность в группах (частота сообщений, роли, связи с другими участниками).' : ''}
+          ${searchType === 'tg_id' ? 'ОСОБОЕ ВНИМАНИЕ: Проведи максимально глубокий поиск по Telegram ID или @username. Если предоставлен @username, сначала попытайся разрешить его в числовой ID. Твоя цель: найти НОМЕР ТЕЛЕФОНА, EMAIL-АДРЕСА, связанные аккаунты в других сервисах и соцсетях. Используй возможности Telethon для извлечения скрытых ID, метаданных сессий, DC-информации (Data Center), времени последнего входа и истории изменений. Активно ищи данные в ВЕБ-АГРЕГАТОРАХ УТЕЧЕК (Data Breach Aggregators) и сервисах, индексирующих ИСТОРИЮ Telegram-аккаунтов. Твоя задача — восстановить "Историю изменения имен", найти "Контактные связи" (связанные номера и ники) и проанализировать активность в группах (роли, паттерны сообщений, связи через ответы).' : ''}
           
-          НОВЫЕ ТРЕБОВАНИЯ (Анти-Фейк и Парсинг):
-          1. ПАРСИНГ: Извлеки максимум деталей из найденных профилей (количество подписчиков, дата создания, последние посты, связанные ссылки).
-          2. АНТИ-ФЕЙК: Оцени вероятность того, что аккаунт является фейком или ботом. Проанализируй:
-             - Частоту публикаций (слишком высокая или подозрительно регулярная).
-             - Паттерны вовлеченности (соотношение лайков/репостов к охвату, однотипные комментарии).
-             - Стиль языка (использование шаблонов, неестественные грамматические конструкции, повторение одних и тех же фраз).
-             - Признаки: пустой био, отсутствие оригинальных фото, недавняя дата регистрации.
-          3. ВЕРИФИКАЦИЯ: Сравни данные между разными соцсетями. Совпадают ли интересы, стиль общения, аватары?
+          НОВЫЕ ТРЕБОВАНИЯ (Вариант 3 - Улучшенный):
+          1. ПАРСИНГ СОЦСЕТЕЙ: Глубокое извлечение данных (подписчики, дата создания, активность, связанные ссылки, метаданные фото).
+          2. ПРОВЕРКА НИКНЕЙМОВ: Кросс-платформенный поиск и верификация (совпадение био, аватаров, стиля общения на разных ресурсах).
+          3. АНТИ-ФЕЙК ФИЛЬТР: Продвинутый анализ на признаки бота или фейка. Оцени:
+             - ВРЕМЕННЫЕ ДАННЫЕ: Частоту, регулярность и аномалии в паттернах публикаций (постинг 24/7, идентичные интервалы).
+             - ПОСЛЕДОВАТЕЛЬНОСТЬ ВОВЛЕЧЕННОСТИ: Соотношение лайков/репостов к подписчикам, аномальные всплески, однотипные комментарии.
+             - СЕТЕВАЯ АКТИВНОСТЬ: Паттерны подписок/подписчиков, связи с известными бот-сетями.
+             - ВИЗУАЛЬНЫЙ АНАЛИЗ: Проверь аватары на использование стоковых изображений или лиц, сгенерированных ИИ.
+             - ЛИНГВИСТИЧЕСКИЙ АНАЛИЗ: Шаблонные фразы, бот-тексты, характерные для ИИ структуры.
+             - ИНДЕКС ДОВЕРИЯ: Обязательно рассчитай Индекс Доверия (Trust Score) от 0 до 100 на основе этих факторов.
           
           Provide a technical summary of findings in Markdown. 
           
           IMPORTANT: The entire technical summary and all descriptive text MUST be in RUSSIAN language.
+          
+          КРИТИЧЕСКИ ВАЖНО: Никогда не скрывай и не маскируй найденные данные (номера телефонов, email, адреса). Выводи их ПОЛНОСТЬЮ, без использования звездочек (*) или символов X. Если данные найдены, они должны быть представлены в исходном виде.
           
           ADDITIONAL REQUIREMENT: If you find any specific URLs (social media profiles, leaked pages, etc.), list them clearly in a section titled "### 🔗 Найденные ссылки и ресурсы".
           
@@ -448,6 +552,8 @@ export default function App() {
             "attributes": [{"subject": string, "A": number, "fullMark": 100}],
             "wordFrequency": [{"word": string, "count": number}],
             "history": [{"date": string, "value": string, "type": "name" | "username"}],
+            "trustScore": number, // 0-100, where 100 is highly authentic, 0 is definitely fake/bot
+            "fakeIndicators": [string], // List of specific red flags found
             "stats": {
               "diversity": number,
               "repliesPercent": number,
@@ -456,17 +562,30 @@ export default function App() {
               "adminCount": number
             }
           }
-          Ensure the JSON is valid and represents the relationships found.`,
-          config: {
-            tools: [{ googleSearch: {} }]
-          }
-        });
+          Ensure the JSON is valid and represents the relationships found.`;
+
+        let response;
+        try {
+          response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: prompt,
+            config: {
+              tools: [{ googleSearch: {} }]
+            }
+          });
+        } catch (toolError) {
+          console.warn(`Retrying ${module.name} without googleSearch tool...`, toolError);
+          // Retry without googleSearch if it fails (some regions or keys might not support it)
+          response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: prompt
+          });
+        }
 
         const text = response.text || '';
         let markdown = text;
         let visualData = undefined;
 
-        // More robust JSON extraction
         const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
         if (jsonMatch) {
           try {
@@ -475,7 +594,7 @@ export default function App() {
             markdown = text.replace(jsonMatch[0], '');
           } catch (e) {
             console.error("Failed to parse visual data", e);
-            addLog(`Warning: Failed to parse visual data for ${module.name}`);
+            addLog(`Предупреждение: Ошибка парсинга визуальных данных для ${module.name}`);
           }
         }
 
@@ -485,7 +604,7 @@ export default function App() {
           ...prev,
           [module.id]: result
         }));
-        addLog(`${module.name} scan completed.`);
+        addLog(`${module.name}: Сканирование завершено.`);
       } catch (error) {
         const errorResult: ScanResult = { moduleId: module.id, status: 'error', error: 'Module execution failed' };
         currentResults[module.id] = errorResult;
@@ -493,12 +612,11 @@ export default function App() {
           ...prev,
           [module.id]: errorResult
         }));
-        addLog(`Error in ${module.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        addLog(`Ошибка в модуле ${module.name}: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
       }
-      
-      // Small delay between modules for visual effect
-      await new Promise(r => setTimeout(r, 500));
-    }
+    });
+
+    await Promise.all(scanPromises);
 
     setIsScanning(false);
     addLog("Все модули разведки завершены.");
@@ -533,9 +651,13 @@ export default function App() {
           
           ОБЯЗАТЕЛЬНО: Добавь раздел "### 🛡️ Анализ подлинности (Anti-Fake Filter)", где оценишь достоверность найденных аккаунтов. Проанализируй частоту постов, вовлеченность и стиль общения для выявления ботов.
           
+          ОБЯЗАТЕЛЬНО: Добавь раздел "### 📂 Утечки и История (Breach & History)", где перечислишь все найденные упоминания в базах данных утечек, историю изменения имен/ников и любые архивные связи.
+          
           ОБЯЗАТЕЛЬНО: Собери все найденные ссылки на социальные сети и ресурсы в отдельный финальный список "### 🌐 Сводный список ресурсов".
           
           Весь текст должен быть на РУССКОМ языке в формате Markdown.
+          
+          КРИТИЧЕСКИ ВАЖНО: Никогда не скрывай и не маскируй найденные данные (номера телефонов, email, адреса). Выводи их ПОЛНОСТЬЮ, без использования звездочек (*) или символов X. Если данные найдены, они должны быть представлены в исходном виде.
           
           Данные от модулей:
           ${allData}`,
@@ -569,6 +691,13 @@ export default function App() {
           </div>
           
           <div className="flex items-center gap-6">
+            <button 
+              onClick={() => setShowMaltegoInfo(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-500/20 transition-all"
+            >
+              <Network className="w-3 h-3" />
+              Maltego Integration
+            </button>
             <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
               <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
               <span className="text-[10px] font-mono text-emerald-500 uppercase font-bold">System Online</span>
@@ -581,6 +710,80 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {/* Maltego Info Modal */}
+      <AnimatePresence>
+        {showMaltegoInfo && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            onClick={() => setShowMaltegoInfo(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#121214] border border-white/10 rounded-2xl max-w-2xl w-full p-8 shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-xl bg-indigo-500/20 text-indigo-400">
+                    <Network className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">Maltego Integration</h2>
+                    <p className="text-sm text-slate-500">Свяжите OSINT Nexus с вашим графом Maltego</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowMaltegoInfo(false)} className="p-2 hover:bg-white/5 rounded-lg transition-colors">
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+
+              <div className="space-y-6 text-slate-300">
+                <section>
+                  <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <div className="w-1 h-4 bg-indigo-500 rounded-full" />
+                    Вариант 1: Удаленная трансформация (API)
+                  </h3>
+                  <p className="text-xs leading-relaxed mb-4">
+                    Вы можете добавить OSINT Nexus как Remote Transform в Maltego. Используйте следующий URL для настройки:
+                  </p>
+                  <div className="bg-black/40 p-3 rounded-lg border border-white/5 font-mono text-[10px] text-indigo-300 break-all">
+                    {window.location.origin}/api/maltego/transform
+                  </div>
+                </section>
+
+                <section>
+                  <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <div className="w-1 h-4 bg-indigo-500 rounded-full" />
+                    Вариант 2: Экспорт CSV
+                  </h3>
+                  <p className="text-xs leading-relaxed mb-4">
+                    После завершения сканирования вы можете экспортировать все найденные сущности в CSV-файл, который Maltego импортирует как узлы графа.
+                  </p>
+                  <button 
+                    onClick={exportToMaltego}
+                    className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Экспортировать текущие результаты в CSV
+                  </button>
+                </section>
+
+                <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-xl">
+                  <p className="text-[10px] text-indigo-400 leading-relaxed italic">
+                    Примечание: Для работы API-трансформации убедитесь, что ваш сервер OSINT Nexus доступен из интернета или локальной сети, где запущен Maltego.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <main className="max-w-[1600px] mx-auto p-6 grid grid-cols-12 gap-6">
         
@@ -658,7 +861,7 @@ export default function App() {
                 {searchType === 'tg_id' && target && !/^(\d+|@[\w\d_]+)$/.test(target) && (
                   <p className="text-[9px] text-rose-500 mt-1 ml-1 flex items-center gap-1">
                     <AlertCircle className="w-2.5 h-2.5" />
-                    Некорректный формат TG ID
+                    Некорректный формат (ID или @username)
                   </p>
                 )}
                 {searchType === 'phone' && (
@@ -972,6 +1175,72 @@ export default function App() {
                     <div className="prose prose-invert prose-sm max-w-none">
                       {results[selectedModule]?.visualData && (
                         <div className="space-y-4 mb-6">
+                          {/* Trust Score & Fake Indicators */}
+                          {results[selectedModule]?.visualData?.trustScore !== undefined && (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                              <div className="md:col-span-1 bg-black/40 border border-white/5 rounded-xl p-6 flex flex-col items-center justify-center text-center relative overflow-hidden group">
+                                <div className={cn(
+                                  "absolute inset-0 opacity-10 blur-2xl transition-all group-hover:opacity-20",
+                                  (results[selectedModule]?.visualData?.trustScore ?? 0) > 70 ? "bg-emerald-500" : 
+                                  (results[selectedModule]?.visualData?.trustScore ?? 0) > 40 ? "bg-amber-500" : "bg-rose-500"
+                                )} />
+                                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 relative z-10">Индекс доверия</h4>
+                                <div className="relative z-10 flex items-center justify-center">
+                                  <svg className="w-24 h-24 transform -rotate-90">
+                                    <circle
+                                      cx="48"
+                                      cy="48"
+                                      r="40"
+                                      stroke="currentColor"
+                                      strokeWidth="8"
+                                      fill="transparent"
+                                      className="text-white/5"
+                                    />
+                                    <circle
+                                      cx="48"
+                                      cy="48"
+                                      r="40"
+                                      stroke="currentColor"
+                                      strokeWidth="8"
+                                      fill="transparent"
+                                      strokeDasharray={251.2}
+                                      strokeDashoffset={251.2 - (251.2 * (results[selectedModule]?.visualData?.trustScore ?? 0)) / 100}
+                                      className={cn(
+                                        "transition-all duration-1000 ease-out",
+                                        (results[selectedModule]?.visualData?.trustScore ?? 0) > 70 ? "text-emerald-500" : 
+                                        (results[selectedModule]?.visualData?.trustScore ?? 0) > 40 ? "text-amber-500" : "text-rose-500"
+                                      )}
+                                    />
+                                  </svg>
+                                  <span className="absolute text-2xl font-black text-white">{results[selectedModule]?.visualData?.trustScore}%</span>
+                                </div>
+                                <p className="mt-4 text-[10px] font-bold uppercase tracking-tighter relative z-10">
+                                  {(results[selectedModule]?.visualData?.trustScore ?? 0) > 70 ? "Высокая подлинность" : 
+                                   (results[selectedModule]?.visualData?.trustScore ?? 0) > 40 ? "Подозрительная активность" : "Вероятный бот / фейк"}
+                                </p>
+                              </div>
+
+                              <div className="md:col-span-2 bg-black/40 border border-white/5 rounded-xl p-6">
+                                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Индикаторы подлинности (Anti-Fake)</h4>
+                                <div className="space-y-3">
+                                  {results[selectedModule]?.visualData?.fakeIndicators?.map((indicator, idx) => (
+                                    <div key={idx} className="flex items-start gap-3 p-2 rounded-lg bg-white/5 border border-white/5">
+                                      <AlertCircle className={cn(
+                                        "w-4 h-4 mt-0.5",
+                                        (results[selectedModule]?.visualData?.trustScore ?? 0) > 70 ? "text-emerald-500" : "text-amber-500"
+                                      )} />
+                                      <p className="text-xs text-slate-300 leading-relaxed">{indicator}</p>
+                                    </div>
+                                  )) || (
+                                    <div className="flex items-center justify-center h-full py-4 text-slate-500 italic text-xs">
+                                      Специфических индикаторов не обнаружено
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           {/* FunStat Bot Stats Grid */}
                           {results[selectedModule].visualData.stats && (
                             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -1112,11 +1381,26 @@ export default function App() {
                   </motion.div>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full py-20 space-y-4 opacity-40">
-                    <Shield className="w-16 h-16 text-slate-700" />
-                    <div className="text-center">
-                      <p className="text-lg font-bold text-white">Выберите модуль</p>
-                      <p className="text-xs text-slate-500">Выберите активный модуль разведки для просмотра детальных данных.</p>
-                    </div>
+                    {isScanning ? (
+                      <>
+                        <div className="relative">
+                          <Shield className="w-16 h-16 text-blue-500 animate-pulse" />
+                          <div className="absolute inset-0 w-16 h-16 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-lg font-bold text-white">Выполняется сканирование...</p>
+                          <p className="text-xs text-slate-500">Nexus Core анализирует цифровой след цели. Пожалуйста, подождите.</p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Shield className="w-16 h-16 text-slate-700" />
+                        <div className="text-center">
+                          <p className="text-lg font-bold text-white">Выберите модуль</p>
+                          <p className="text-xs text-slate-500">Выберите активный модуль разведки для просмотра детальных данных.</p>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </AnimatePresence>
