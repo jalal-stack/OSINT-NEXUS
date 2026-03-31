@@ -27,17 +27,44 @@ async function startServer() {
         return res.status(400).send("Target is required");
       }
 
-      const ai = new GoogleGenAI({ apiKey });
+      const callGeminiWithRetry = async (prompt: string, maxRetries = 3): Promise<any> => {
+        let lastError: any;
+        for (let i = 0; i < maxRetries; i++) {
+          try {
+            const ai = new GoogleGenAI({ apiKey });
+            const response = await ai.models.generateContent({
+              model: "gemini-3-flash-preview",
+              contents: prompt,
+              config: { responseMimeType: "application/json" }
+            });
+            return response;
+          } catch (error: any) {
+            lastError = error;
+            const errorStr = JSON.stringify(error);
+            const isRateLimit = 
+              error.message?.includes('429') || 
+              error.status === 429 || 
+              errorStr.includes('429') || 
+              errorStr.includes('RESOURCE_EXHAUSTED');
+            
+            if (isRateLimit) {
+              const waitTime = Math.pow(2, i) * 2000 + Math.random() * 1000;
+              console.log(`[Server] Gemini Rate Limit. Retrying in ${waitTime}ms...`);
+              await new Promise(r => setTimeout(r, waitTime));
+              continue;
+            }
+            throw error;
+          }
+        }
+        throw lastError;
+      };
+
       const prompt = `Perform a ${type} OSINT analysis for the target: "${target}". 
         Extract all found entities (emails, phone numbers, usernames, social media profiles).
         Return ONLY a JSON array of objects with "type" (email, phone, username, profile) and "value".
         Example: [{"type": "email", "value": "test@example.com"}]`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-        config: { responseMimeType: "application/json" }
-      });
+      const response = await callGeminiWithRetry(prompt);
 
       const entities = JSON.parse(response.text || "[]");
 

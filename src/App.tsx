@@ -57,6 +57,43 @@ type HistoryItem = {
   timestamp: number;
 };
 
+// --- Request Queue ---
+
+class GeminiQueue {
+  private queue: (() => Promise<void>)[] = [];
+  private activeCount = 0;
+  private maxConcurrent = 2; // Limit to 2 concurrent requests to avoid 429s
+
+  async add<T>(fn: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      this.queue.push(async () => {
+        try {
+          const result = await fn();
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+      this.process();
+    });
+  }
+
+  private async process() {
+    if (this.activeCount >= this.maxConcurrent || this.queue.length === 0) return;
+
+    this.activeCount++;
+    const fn = this.queue.shift()!;
+    try {
+      await fn();
+    } finally {
+      this.activeCount--;
+      this.process();
+    }
+  }
+}
+
+const geminiQueue = new GeminiQueue();
+
 type OSINTModule = {
   id: string;
   name: string;
@@ -372,6 +409,51 @@ export default function App() {
     setLogs(prev => [`[${time}] ${msg}`, ...prev].slice(0, 50));
   };
 
+  const callGeminiWithRetry = async (prompt: string, useSearch = true, maxRetries = 5): Promise<any> => {
+    return geminiQueue.add(async () => {
+      let lastError: any;
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+          const config = useSearch ? { tools: [{ googleSearch: {} }] } : {};
+          
+          const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: prompt,
+            config
+          });
+          return response;
+        } catch (error: any) {
+          lastError = error;
+          const errorStr = JSON.stringify(error);
+          const isRateLimit = 
+            error.message?.includes('429') || 
+            error.status === 429 || 
+            errorStr.includes('429') || 
+            errorStr.includes('RESOURCE_EXHAUSTED') ||
+            errorStr.includes('quota');
+          
+          if (isRateLimit) {
+            // Exponential backoff: 5s, 10s, 20s, 40s, 80s + jitter
+            const waitTime = Math.pow(2, i) * 5000 + Math.random() * 2000;
+            addLog(`[System] Квота API исчерпана. Повтор ${i+1}/${maxRetries} через ${Math.round(waitTime/1000)}с...`);
+            await new Promise(r => setTimeout(r, waitTime));
+            continue;
+          }
+          
+          // If search tool fails, try without it
+          if (useSearch && (error.message?.includes('tool') || errorStr.includes('tool'))) {
+             addLog(`[System] Ошибка инструмента поиска. Повтор без Google Search...`);
+             return callGeminiWithRetry(prompt, false, maxRetries);
+          }
+          
+          throw error;
+        }
+      }
+      throw lastError;
+    });
+  };
+
   const exportToMaltego = () => {
     const nodes = Object.values(results)
       .filter(r => r.visualData?.nodes)
@@ -465,10 +547,13 @@ export default function App() {
     }
   };
 
-  const runScanRound = async (currentTarget: string, detectedType: 'nickname' | 'email' | 'web' | 'phone' | 'tg_id' | 'universal', depth = 0) => {
-    if (depth > 2) return; // Limit recursion depth to 3 rounds
+  const runScanRound = async (currentTarget: string, detectedType: 'nickname' | 'email' | 'web' | 'phone' | 'tg_id' | 'universal', depth = 0, localDiscovered = new Set<string>()) => {
+    if (depth > 1) return; // Reduced recursion depth to 2 rounds (0 and 1) to save quota
 
     const actualType = detectedType === 'universal' ? detectType(currentTarget) : detectedType as any;
+    
+    if (localDiscovered.has(currentTarget) && depth > 0) return;
+    localDiscovered.add(currentTarget);
 
     addLog(`[Round ${depth + 1}] Запуск Nexus Core для: ${currentTarget} (${actualType})`);
     
@@ -491,7 +576,8 @@ export default function App() {
     setResults(prev => ({ ...prev, ...roundResults }));
 
     const scanPromises = activeModules.map(async (module, index) => {
-      await new Promise(r => setTimeout(r, index * 600));
+      // Staggered start to avoid immediate burst, but queue handles the hard limit
+      await new Promise(r => setTimeout(r, index * 800));
       
       setResults(prev => ({
         ...prev,
@@ -502,8 +588,6 @@ export default function App() {
       addLog(`[${module.name}] Анализ ${currentTarget}...`);
       
       try {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        
         const prompt = `Perform a ${detectedType} OSINT analysis for the target: "${currentTarget}" using the methodology of ${module.name} (${module.description}). 
           
           Methodology Context:
@@ -568,19 +652,7 @@ export default function App() {
           }
           Ensure the JSON is valid and represents the relationships found. Use "id" for nodes and reference them in "links".`;
 
-        let response;
-        try {
-          response = await ai.models.generateContent({
-            model: "gemini-3-flash-preview",
-            contents: prompt,
-            config: { tools: [{ googleSearch: {} }] }
-          });
-        } catch (toolError) {
-          response = await ai.models.generateContent({
-            model: "gemini-3-flash-preview",
-            contents: prompt
-          });
-        }
+        const response = await callGeminiWithRetry(prompt, true);
 
         const text = response.text || '';
         let markdown = text;
@@ -594,17 +666,18 @@ export default function App() {
             markdown = text.replace(jsonMatch[0], '');
             
             // AUTO-CHAIN LOGIC: Extract new entities for next round
-            if (visualData.nodes && depth < 2) {
+            if (visualData.nodes && depth < 1) {
               const newEntities = visualData.nodes
                 .filter((n: any) => n.type === 'email' || n.type === 'phone' || n.type === 'account')
                 .map((n: any) => n.name)
-                .filter((name: string) => !discoveredEntities.has(name));
+                .filter((name: string) => name && name !== currentTarget && !localDiscovered.has(name))
+                .slice(0, 2); // Limit to 2 new entities per module to save quota
 
               if (newEntities.length > 0) {
                 addLog(`[Auto-Chain] Обнаружены новые сущности: ${newEntities.join(', ')}. Запуск следующего этапа...`);
                 await Promise.all(newEntities.map(async (entity: string) => {
                   setDiscoveredEntities(prev => new Set([...prev, entity]));
-                  await runScanRound(entity, 'universal', depth + 1);
+                  await runScanRound(entity, 'universal', depth + 1, localDiscovered);
                 }));
               }
             }
@@ -629,7 +702,6 @@ export default function App() {
   const generateFinalSummary = async (currentTarget: string, detectedType: string) => {
     addLog("Генерация финального AI отчета...");
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const successfulResults = Object.entries(results).filter(([_, r]) => r.status === 'completed' && r.data);
       const allData = successfulResults
         .map(([id, r]) => {
@@ -638,9 +710,7 @@ export default function App() {
         })
         .join('\n\n');
 
-      const summaryResponse = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `На основе всех данных OSINT для цели "${currentTarget}", составь итоговый отчет.
+      const prompt = `На основе всех данных OSINT для цели "${currentTarget}", составь итоговый отчет.
         
         СТРУКТУРА ОТЧЕТА:
         1. **Вероятность идентификации**: (Укажи процент вероятности, напр. 82%)
@@ -664,8 +734,9 @@ export default function App() {
         КРИТИЧЕСКИ ВАЖНО: Никогда не скрывай данные (номера, email).
         
         Данные от модулей:
-        ${allData}`,
-      });
+        ${allData}`;
+
+      const summaryResponse = await callGeminiWithRetry(prompt, true);
 
       setGeneralSummary(summaryResponse.text || "Ошибка генерации отчета.");
       addLog("Финальный отчет готов.");
