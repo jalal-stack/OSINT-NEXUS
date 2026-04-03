@@ -9,6 +9,37 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Gemini Proxy Endpoint
+  app.post("/api/scan", async (req, res) => {
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "GEMINI_API_KEY not configured on server" });
+      }
+
+      const { prompt, useSearch } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ error: "Prompt is required" });
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+      const config = useSearch ? { tools: [{ googleSearch: {} }] } : {};
+      
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config
+      });
+
+      res.json({ text: response.text });
+    } catch (error: any) {
+      console.error("Gemini Proxy Error:", error);
+      const status = error.status || 500;
+      const message = error.message || "Internal Server Error";
+      res.status(status).json({ error: message });
+    }
+  });
+
   // Maltego Transform Endpoint
   app.post("/api/maltego/transform", async (req, res) => {
     try {

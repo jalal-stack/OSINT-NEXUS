@@ -24,7 +24,6 @@ import {
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GoogleGenAI } from "@google/genai";
 import ReactMarkdown from 'react-markdown';
 import { 
   LineChart, 
@@ -414,20 +413,22 @@ export default function App() {
       let lastError: any;
       for (let i = 0; i < maxRetries; i++) {
         try {
-          const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-          const config = useSearch ? { tools: [{ googleSearch: {} }] } : {};
-          
-          const response = await ai.models.generateContent({
-            model: "gemini-3-flash-preview",
-            contents: prompt,
-            config
+          const response = await fetch('/api/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, useSearch })
           });
-          return response;
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw { status: response.status, message: errorData.error || 'API Error' };
+          }
+
+          return await response.json();
         } catch (error: any) {
           lastError = error;
           const errorStr = JSON.stringify(error);
           const isRateLimit = 
-            error.message?.includes('429') || 
             error.status === 429 || 
             errorStr.includes('429') || 
             errorStr.includes('RESOURCE_EXHAUSTED') ||
@@ -532,12 +533,6 @@ export default function App() {
     setIsScanning(true);
     setSelectedModule(null);
     
-    if (!process.env.GEMINI_API_KEY) {
-      addLog("ОШИБКА: API ключ Gemini не найден.");
-      setIsScanning(false);
-      return;
-    }
-
     await runScanRound(currentTarget, detectedType);
     
     if (!manualTarget) {
