@@ -420,8 +420,16 @@ export default function App() {
           });
 
           if (!response.ok) {
-            const errorData = await response.json();
-            throw { status: response.status, message: errorData.error || 'API Error' };
+            let errorMessage = `Error ${response.status}`;
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+              const textError = await response.text();
+              errorMessage = `Server returned HTML/Text instead of JSON (Status ${response.status}). Check if backend is running.`;
+              console.error("Non-JSON response:", textError.slice(0, 200));
+            }
+            throw { status: response.status, message: errorMessage };
           }
 
           return await response.json();
