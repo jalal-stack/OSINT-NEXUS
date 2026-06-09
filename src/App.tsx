@@ -130,55 +130,10 @@ type ScanResult = {
 
 const MODULES: OSINTModule[] = [
   { 
-    id: 'teleosinter', 
-    name: 'TeleOSinter', 
-    icon: <MessageSquare className="w-4 h-4" />, 
-    description: 'Анализ метаданных Telegram и связей пользователей',
-    source: 'github.com/C3EQUALZz/TeleOSinter',
-    color: 'text-sky-400',
-    category: 'tg_id'
-  },
-  { 
-    id: 'recon-ng', 
-    name: 'Recon-ng', 
-    icon: <Network className="w-4 h-4" />, 
-    description: 'Полнофункциональный фреймворк для глубокой OSINT-разведки: поиск контактов, хостов, доменов и связей через API-модули',
-    source: 'github.com/lanmaster53/recon-ng',
-    color: 'text-emerald-400',
-    category: 'all'
-  },
-  { 
-    id: 'ghosttrack', 
-    name: 'GhostTrack', 
-    icon: <MapPin className="w-4 h-4" />, 
-    description: 'Отслеживание IP и геолокационная разведка',
-    source: 'github.com/HunxByts/GhostTrack',
-    color: 'text-rose-400',
-    category: 'web'
-  },
-  { 
-    id: 'spiderfoot', 
-    name: 'SpiderFoot', 
-    icon: <Globe className="w-4 h-4" />, 
-    description: 'Автоматизированный сбор и корреляция OSINT',
-    source: 'github.com/smicallef/spiderfoot',
-    color: 'text-amber-400',
-    category: 'all'
-  },
-  { 
-    id: 'sonarsearch', 
-    name: 'SonarSearch', 
-    icon: <Database className="w-4 h-4" />, 
-    description: 'Перечисление поддоменов и DNS-записей',
-    source: 'github.com/Cgboal/SonarSearch',
-    color: 'text-indigo-400',
-    category: 'web'
-  },
-  { 
     id: 'sherlock', 
     name: 'Sherlock', 
     icon: <Search className="w-4 h-4" />, 
-    description: 'Поиск аккаунтов в соцсетях по имени пользователя',
+    description: 'Поиск аккаунтов в соцсетях (без API)',
     source: 'github.com/sherlock-project/sherlock',
     color: 'text-orange-400',
     category: 'nickname'
@@ -187,7 +142,7 @@ const MODULES: OSINTModule[] = [
     id: 'maigret', 
     name: 'Maigret', 
     icon: <User className="w-4 h-4" />, 
-    description: 'Сбор досье на человека по никнейму с тысяч сайтов',
+    description: 'Сбор досье на человека по никнейму (без API)',
     source: 'github.com/soxoj/maigret',
     color: 'text-fuchsia-400',
     category: 'nickname'
@@ -196,190 +151,46 @@ const MODULES: OSINTModule[] = [
     id: 'holehe', 
     name: 'Holehe', 
     icon: <Mail className="w-4 h-4" />, 
-    description: 'Проверка использования email на более чем 120 сервисах',
+    description: 'Проверка использования email (без API)',
     source: 'github.com/megadose/holehe',
     color: 'text-lime-400',
     category: 'email'
   },
   {
-    id: 'mosint',
-    name: 'Mosint',
-    icon: <Mail className="w-4 h-4" />,
-    description: 'Автоматизированный инструмент для глубокой разведки email',
-    source: 'github.com/alpkeskin/mosint',
-    color: 'text-blue-400',
-    category: 'email'
-  },
-  {
-    id: 'epios',
-    name: 'EPIOS',
-    icon: <Search className="w-4 h-4" />,
-    description: 'Поиск связанных профилей и данных по адресу почты',
-    source: 'epios.com',
-    color: 'text-yellow-400',
-    category: 'email'
-  },
-  {
-    id: 'hibp',
-    name: 'HIBP',
-    icon: <Shield className="w-4 h-4" />,
-    description: 'Анализ утечек данных и компрометации паролей',
-    source: 'haveibeenpwned.com',
-    color: 'text-red-500',
-    category: 'email'
-  },
-  {
-    id: 'infoga',
-    name: 'Infoga',
-    icon: <Database className="w-4 h-4" />,
-    description: 'Сбор информации об email из публичных источников',
-    source: 'github.com/m4ll0k/Infoga',
-    color: 'text-green-500',
-    category: 'email'
-  },
-  {
-    id: 'phoneinfoga',
-    name: 'PhoneInfoga',
-    icon: <Phone className="w-4 h-4" />,
-    description: 'Сбор технической информации и геолокации по номеру',
-    source: 'github.com/sundowndev/phoneinfoga',
-    color: 'text-rose-500',
-    category: 'phone'
-  },
-  {
     id: 'whatsmyname',
     name: 'WhatsMyName',
     icon: <Search className="w-4 h-4" />,
-    description: 'Проверка существования аккаунтов на сотнях ресурсов',
+    description: 'Поиск аккаунтов на открытых платформах',
     source: 'github.com/webbreacher/whatsmyname',
     color: 'text-cyan-300',
     category: 'nickname'
   },
   {
-    id: 'maltego-telegram',
-    name: 'Maltego Telegram',
-    icon: <Network className="w-4 h-4" />,
-    description: 'Визуализация связей и графов в Telegram',
-    source: 'github.com/vognik/maltego-telegram',
-    color: 'text-indigo-500',
-    category: 'tg_id'
-  },
-  {
-    id: 'tg-bot-recon',
-    name: 'TG Bot Recon',
-    icon: <Terminal className="w-4 h-4" />,
-    description: 'Анализ активности и связанных данных через Telegram ботов',
-    source: 'internal/tg-bot-recon',
-    color: 'text-blue-500',
-    category: 'tg_id'
-  },
-  {
-    id: 'tele-deep-recon',
-    name: 'Tele-Deep Recon',
-    icon: <Network className="w-4 h-4" />,
-    description: 'Глубокий анализ активности в группах, ролей, паттернов сообщений и метаданных',
-    source: 'internal/tele-deep-recon',
-    color: 'text-indigo-400',
-    category: 'tg_id'
-  },
-  {
-    id: 'social-parser',
-    name: 'Social Parser',
-    icon: <Globe className="w-4 h-4" />,
-    description: 'Глубокий парсинг профилей соцсетей: био, связи, активность',
-    source: 'internal/social-parser',
-    color: 'text-sky-400',
-    category: 'all'
-  },
-  {
-    id: 'identity-verifier',
-    name: 'Identity Verifier',
-    icon: <Shield className="w-4 h-4" />,
-    description: 'Кросс-платформенная проверка подлинности никнеймов',
-    source: 'internal/identity-verifier',
-    color: 'text-emerald-400',
-    category: 'nickname'
-  },
-  {
-    id: 'l3mon-recon',
-    name: 'L3MON Recon',
-    icon: <Zap className="w-4 h-4" />,
-    description: 'Поиск связей аккаунтов и истории активности в Telegram',
-    source: 'github.com/D4Vinci/L3MON',
-    color: 'text-yellow-500',
-    category: 'tg_id'
-  },
-  {
-    id: 'tg-history-bot',
-    name: 'TG History Bot',
-    icon: <History className="w-4 h-4" />,
-    description: 'Архив изменений профилей и истории юзернеймов',
-    source: 'internal/tg-history',
-    color: 'text-blue-300',
-    category: 'tg_id'
-  },
-  {
-    id: 'telethon',
-    name: 'Telethon Recon',
-    icon: <MessageSquare className="w-4 h-4" />,
-    description: 'Глубокое взаимодействие с Telegram API (MTProto): извлечение скрытых ID, метаданных сессий, DC-информации и истории через API-вызовы',
-    source: 'github.com/lonamiwebs/telethon',
-    color: 'text-blue-400',
-    category: 'tg_id'
-  },
-  {
     id: 'google-dorking',
     name: 'Google Dorking',
     icon: <Search className="w-4 h-4" />,
-    description: 'Использование продвинутых поисковых операторов для поиска скрытой информации',
+    description: 'Систематизированный поиск в Google (без API)',
     source: 'internal/google-dorking',
     color: 'text-orange-500',
     category: 'all'
   },
   {
-    id: 'anti-fake-engine',
-    name: 'Anti-Fake Engine',
-    icon: <AlertCircle className="w-4 h-4" />,
-    description: 'Продвинутый анализ на ботов: паттерны постов, вовлеченность, сетевая активность и стоковые фото',
-    source: 'internal/anti-fake-filter',
-    color: 'text-rose-500',
-    category: 'all'
-  },
-  {
-    id: 'instaloader',
-    name: 'Instaloader',
-    icon: <Globe className="w-4 h-4" />,
-    description: 'Инструмент для сбора данных из Instagram: профили, посты, метаданные и связи',
-    source: 'github.com/instaloader/instaloader',
-    color: 'text-pink-500',
-    category: 'nickname'
-  },
-  {
-    id: 'ghunt',
-    name: 'GHunt',
-    icon: <Mail className="w-4 h-4" />,
-    description: 'Исследование Google-аккаунтов по адресу почты: сервисы, ID, активность и метаданные',
-    source: 'github.com/mxrch/ghunt',
-    color: 'text-red-400',
-    category: 'email'
-  },
-  {
     id: 'theharvester',
     name: 'theHarvester',
     icon: <Search className="w-4 h-4" />,
-    description: 'Сбор email, поддоменов, хостов, имен сотрудников и открытых портов из публичных источников',
+    description: 'Open-Source сбор emails и связей из открытых БД',
     source: 'github.com/laramies/theharvester',
     color: 'text-blue-300',
     category: 'all'
   },
   {
-    id: 'neo4j-visual',
-    name: 'Neo4j Visual Layer',
-    icon: <Network className="w-4 h-4" />,
-    description: 'Графовая визуализация связей в стиле Neo4j для глубокого анализа отношений между сущностями',
-    source: 'internal/neo4j-layer',
-    color: 'text-emerald-500',
-    category: 'all'
+    id: 'ghunt',
+    name: 'GHunt',
+    icon: <Mail className="w-4 h-4" />,
+    description: 'OSINT по открытым данным Google',
+    source: 'github.com/mxrch/ghunt',
+    color: 'text-red-400',
+    category: 'email'
   }
 ];
 
@@ -391,6 +202,9 @@ const MOCK_ACTIVITY_DATA = Array.from({ length: 20 }, (_, i) => ({
 
 // --- Components ---
 
+// Extract API URL if running separately
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 export default function App() {
   const [target, setTarget] = useState('');
   const [searchType, setSearchType] = useState<'nickname' | 'email' | 'web' | 'phone' | 'tg_id' | 'universal'>('universal');
@@ -400,8 +214,32 @@ export default function App() {
   const [logs, setLogs] = useState<string[]>([]);
   const [generalSummary, setGeneralSummary] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [showMaltegoInfo, setShowMaltegoInfo] = useState(false);
-  const [discoveredEntities, setDiscoveredEntities] = useState<Set<string>>(new Set());
+    const [discoveredEntities, setDiscoveredEntities] = useState<Set<string>>(new Set());
+  const [apiStatus, setApiStatus] = useState<{ configured: boolean, message: string } | null>(null);
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/status`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const data = await response.json();
+        setApiStatus(data);
+      } catch (error: any) {
+        console.error("Failed to check API status:", error);
+        setApiStatus({ 
+          configured: false, 
+          message: `Ошибка связи с сервером (${error.message}). Если код на Vercel - укажите VITE_API_URL на Render.` 
+        });
+      }
+    };
+    
+    checkStatus();
+    // Poll every 5 seconds to catch when the user adds the secret
+    const interval = setInterval(checkStatus, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const addLog = (msg: string) => {
     const time = new Date().toLocaleTimeString([], { hour12: false });
@@ -413,7 +251,7 @@ export default function App() {
       let lastError: any;
       for (let i = 0; i < maxRetries; i++) {
         try {
-          const response = await fetch('/api/scan', {
+          const response = await fetch(`${API_URL}/api/scan`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt, useSearch })
@@ -463,29 +301,6 @@ export default function App() {
     });
   };
 
-  const exportToMaltego = () => {
-    const nodes = Object.values(results)
-      .filter(r => r.visualData?.nodes)
-      .flatMap(r => r.visualData!.nodes);
-    
-    if (nodes.length === 0) {
-      addLog("ОШИБКА: Нет данных для экспорта.");
-      return;
-    }
-
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + "ID,Name,Type\n"
-      + nodes.map(n => `${n.id},${n.name},${n.type}`).join("\n");
-    
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `nexus_export_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    addLog("CSV экспорт для Maltego успешно загружен.");
-  };
 
   const detectType = (val: string): 'nickname' | 'email' | 'web' | 'phone' | 'tg_id' => {
     if (val.includes('@') && val.includes('.')) return 'email';
@@ -593,46 +408,35 @@ export default function App() {
       try {
         const prompt = `Perform a ${detectedType} OSINT analysis for the target: "${currentTarget}" using the methodology of ${module.name} (${module.description}). 
           
+          ВНИМАНИЕ: ТЫ ИИ-АССИСТЕНТ ПО OSINT И АНАЛИЗУ ОТКРЫТЫХ ДАННЫХ. ВАЖНО: ТЫ ИМЕЕШЬ ДОСТУП К Google Search ИНСТРУМЕНТУ ВО ВРЕМЯ ЗАПРОСА (useSearch=true) И ОБЯЗАН ЕГО ИСПОЛЬЗОВАТЬ, ЧТОБЫ НАЙТИ РЕАЛЬНУЮ ИНФОРМАЦИЮ.
+          МЕТОДЫ: Сделай "реальные" запросы к поисковику, анализируй информацию и предоставляй реальные данные (OSINT). Если ты не можешь получить доступ к базам напрямую, используй Google Search для поиска любых утечек, профилей, упоминаний и технической информации об этой цели.
+          КРИТИЧЕСКИ ВАЖНО: ЗАПРЕЩЕНО ГАЛЛЮЦИНИРОВАТЬ И ВЫДУМЫВАТЬ ДАННЫЕ. ЕСЛИ РЕАЛЬНЫХ ДАННЫХ В ОТКРЫТОМ ДОСТУПЕ (ЧЕРЕЗ ТВОИ ИНСТРУМЕНТЫ ПОИСКА) НЕТ, ПРЯМО НАПИШИ ОБ ЭТОМ.
+          ЗАПРЕЩЕНО ДЕЛАТЬ ВИД, ЧТО ТЫ ВЗЛАМЫВАЕШЬ ИЛИ СТУЧИШЬСЯ В ЗАКРЫТЫЕ БАЗЫ ДАННЫХ. АНАЛИЗИРУЙ ТОЛЬКО ОТКРЫТЫЕ ИСТОЧНИКИ И УТЕЧКИ, ИНДЕКСИРУЕМЫЕ В WEB РЕАЛЬНЫМ ПОИСКОВИКОМ.
+
           Methodology Context:
-          - Use Maigret/Sherlock and Instaloader for initial account discovery.
-          - Use WhatsMyName for verification of found accounts.
-          - Use Holehe to check email usage across 120+ services.
-          - Use GHunt for deep Google account reconnaissance.
-          - Use theHarvester for gathering emails, subdomains, and host information.
-          - Use Maltego (Telegram) and Telethon for linking identities, building relationship graphs, and extracting MTProto-level metadata.
-          - Use SpiderFoot and Recon-ng for final data enrichment. Specifically leverage Recon-ng's API modules for automated host discovery, domain detail extraction, and contact discovery (emails, names, profiles) across all search categories (nickname, email, web, phone, tg_id).
-          - For 'email' searches, strictly follow this sequence: theHarvester (discovery) -> Holehe (platform check) -> GHunt (Google deep dive) -> Final AI Synthesis.
-          - For 'web' searches, prioritize Recon-ng's 'hosts' and 'domains' modules, and theHarvester for broad reconnaissance.
-          - For 'nickname' and 'tg_id' searches, prioritize Recon-ng's 'profiles' and 'contacts' modules for cross-platform identity linking, and Instaloader for Instagram data.
-          - Use TeleOSinter and L3MON for deep Telegram-specific reconnaissance and data breach correlation.
-          - Apply Google Dorking techniques for advanced information retrieval.
-          - VISUALIZATION: Structure the JSON output to support a Neo4j-style graph visualization. Ensure nodes and relationships are clearly defined to show the "web" of connections.
+          - Use Sherlock and Maigret for open social media profile discovery.
+          - Use WhatsMyName for verification of found accounts across open web sources.
+          - Use Holehe to check email usage via public password reset mechanisms.
+          - Use GHunt for basic Google account reconnaissance using public profile data.
+          - Use theHarvester for gathering open-source emails, subdomains, and host information.
+          - Apply structured Google Dorking techniques for advanced information retrieval from indexed pages. СПИСКОМ ВЫВЕДИ КОНКРЕТНЫЕ GOOGLE DORKS ДЛЯ ЭТОЙ ЦЕЛИ, ЧТОБЫ ПОЛЬЗОВАТЕЛЬ МОГ ИСКАТЬ САМ.
+          - VISUALIZATION: Structure the JSON output to support a Neo4j-style graph visualization mapping open web connections.
           
-          Search for public leaks, social media profiles, network records, and associated metadata relevant to this ${detectedType}. 
+          Search for public leaks, social media profiles, network records, and associated metadata relevant to this ${detectedType} ONLY in open directories. 
           
           ${detectedType === 'phone' ? 'ОСОБОЕ ВНИМАНИЕ: Постарайся определить ИМЯ ВЛАДЕЛЬЦА (Owner Name), связанные аккаунты в мессенджерах (WhatsApp, Telegram), теги из телефонных книг и СВЯЗАННЫЕ EMAIL-АДРЕСА. Активно ищи данные в ВЕБ-АГРЕГАТОРАХ УТЕЧЕК (Breach Aggregators) для поиска исторических связей.' : ''}
-          ${detectedType === 'email' ? 'ОСОБОЕ ВНИМАНИЕ: Найди все связанные аккаунты в соцсетях, упоминания в УТЕЧКАХ ДАННЫХ (Breaches), связанные домены, имена владельцев и любые публичные профили (Google, Gravatar, LinkedIn и т.д.). Используй агрегаторы утечек для восстановления истории паролей и связанных контактов.' : ''}
-          ${detectedType === 'nickname' ? 'ОСОБОЕ ВНИМАНИЕ: Проверь подлинность никнейма на разных платформах. Если обнаружены связанные EMAIL-АДРЕСА или НОМЕРА ТЕЛЕФОНОВ, укажи их. Проведи кросс-верификацию данных профиля (фото, био, друзья).' : ''}
-          ${detectedType === 'tg_id' ? 'ОСОБОЕ ВНИМАНИЕ: Проведи максимально глубокий поиск по Telegram ID или @username. Если предоставлен @username, сначала попытайся разрешить его в числовой ID. Твоя цель: найти связанные аккаунты в других сервисах и соцсетях. Используй возможности Telethon для извлечения скрытых ID, метаданных сессий, DC-информации (Data Center), времени последнего входа и истории изменений. Активно ищи данные в ВЕБ-АГРЕГАТОРАХ УТЕЧЕК (Data Breach Aggregators) и сервисах, индексирующих ИСТОРИЮ Telegram-аккаунтов. Твоя задача — восстановить "Историю изменения имен", найти "Контактные связи" (связанные номера и ники) и проанализировать активность в группах (роли, паттерны сообщений, связи через ответы).' : ''}
-          
-          НОВЫЕ ТРЕБОВАНИЯ (Вариант 3 - Улучшенный):
-          1. ПАРСИНГ СОЦСЕТЕЙ: Глубокое извлечение данных (подписчики, дата создания, активность, связанные ссылки, метаданные фото).
-          2. ПРОВЕРКА НИКНЕЙМОВ: Кросс-платформенный поиск и верификация (совпадение био, аватаров, стиля общения на разных ресурсах).
-          3. АНТИ-ФЕЙК ФИЛЬТР: Продвинутый анализ на признаки бота или фейка. Оцени:
-             - ВРЕМЕННЫЕ ДАННЫЕ: Частоту, регулярность и аномалии в паттернах публикаций (постинг 24/7, идентичные интервалы).
-             - ПОСЛЕДОВАТЕЛЬНОСТЬ ВОВЛЕЧЕННОСТИ: Соотношение лайков/репостов к подписчикам, аномальные всплески, однотипные комментарии.
-             - СЕТЕВАЯ АКТИВНОСТЬ: Паттерны подписок/подписчиков, связи с известными бот-сетями.
-             - ВИЗУАЛЬНЫЙ АНАЛИЗ: Проверь аватары на использование стоковых изображений или лиц, сгенерированных ИИ.
-             - ЛИНГВИСТИЧЕСКИЙ АНАЛИЗ: Шаблонные фразы, бот-тексты, характерные для ИИ структуры.
-             - ИНДЕКС ДОВЕРИЯ: Обязательно рассчитай Индекс Доверия (Trust Score) от 0 до 100 на основе этих факторов.
+          ${detectedType === 'email' ? 'ОСОБОЕ ВНИМАНИЕ: Найди все связанные аккаунты в соцсетях, упоминания в УТЕЧКАХ ДАННЫХ (Breaches), связанные домены, имена владельцев и любые публичные профили (Google, Gravatar, LinkedIn и т.д.). Используй агрегаторы открытых баз.' : ''}
+          ${detectedType === 'nickname' ? 'ОСОБОЕ ВНИМАНИЕ: Проверь подлинность никнейма на разных платформах. Если обнаружены связанные EMAIL-АДРЕСА или НОМЕРА ТЕЛЕФОНОВ, укажи их.' : ''}
+          ${detectedType === 'tg_id' ? 'ОСОБОЕ ВНИМАНИЕ: Проведи максимально глубокий поиск по Telegram ID или @username в открытом вебе. Твоя цель: найти связанные аккаунты в сервисах.' : ''}
           
           Provide a technical summary of findings in Markdown. 
           
           IMPORTANT: The entire technical summary and all descriptive text MUST be in RUSSIAN language.
           
-          КРИТИЧЕСКИ ВАЖНО: Никогда не скрывай и не маскируй найденные данные (номера телефонов, email, адреса). Выводи их ПОЛНОСТЬЮ, без использования звездочек (*) или символов X. Если данные найдены, они должны быть представлены в исходном виде.
+          КРИТИЧЕСКИ ВАЖНО: Если реальные данные не найдены, НЕ придумывай их. Выведи только реальную найденную информацию, а также Google Dorks для ручного поиска.
           
           ADDITIONAL REQUIREMENT: If you find any specific URLs (social media profiles, leaked pages, etc.), list them clearly in a section titled "### 🔗 Найденные ссылки и ресурсы".
+          ADDITIONAL REQUIREMENT: Create a mandatory section "### 🔍 Google Dorks для ручного поиска" and suggest 3-5 search queries specific to this target.
           
           CRITICAL: You MUST provide a JSON block at the end of your response (wrapped in \`\`\`json) even if no data is found. 
           
@@ -713,30 +517,27 @@ export default function App() {
         })
         .join('\n\n');
 
-      const prompt = `На основе всех данных OSINT для цели "${currentTarget}", составь итоговый отчет.
+      const prompt = `На основе всех найденных открытых данных (OSINT) для цели "${currentTarget}", составь итоговый отчет.
+        
+        ВНИМАНИЕ: ТЫ ИИ-АССИСТЕНТ ПО OSINT И АНАЛИЗУ ОТКРЫТЫХ ДАННЫХ.
+        КРИТИЧЕСКИ ВАЖНО: ЗАПРЕЩЕНО ГАЛЛЮЦИНИРОВАТЬ И ВЫДУМЫВАТЬ ДАННЫЕ. ЕСЛИ РЕАЛЬНЫХ ДАННЫХ В ОТКРЫТОМ ДОСТУПЕ НЕТ ИЛИ ИХ МАЛО, ПРЯМО НАПИШИ ОБ ЭТОМ. СТРОЙ ВЫВОДЫ ТОЛЬКО НА ПРЕДОСТАВЛЕННЫХ ТЕБЕ ДАННЫХ ОТ МОДУЛЕЙ И РЕАЛЬНЫХ ПОИСКОВЫХ ЗАПРОСАХ ЧЕРЕЗ GOOGLE SEARCH.
+        ВЫ ДОЛЖНЫ ВЫПОЛНИТЬ РЕАЛЬНЫЙ ПОИСК В INTERNET И ПРОВЕРИТЬ ИНФОРМАЦИЮ ПЕРЕД ВЫВОДОМ.
         
         СТРУКТУРА ОТЧЕТА:
         1. **Вероятность идентификации**: (Укажи процент вероятности, напр. 82%)
-        2. **Найденные аккаунты**: (Список подтвержденных соцсетей и мессенджеров)
-        3. **Связи**: (Почему мы считаем, что это один человек? Напр. совпадает bio, username, фото)
+        2. **Найденные аккаунты**: (Список подтвержденных соцсетей и мессенджеров ИЗ ДАННЫХ)
+        3. **Связи**: (Почему мы считаем, что это один человек? Напр. совпадает bio, username, фото ИЗ ДАННЫХ)
         4. **Риск**: (Оценка активности, потенциальные угрозы, признаки фейка)
         
-        При анализе придерживайся методологии:
-        1. Обнаружение (Maigret/Sherlock/theHarvester)
-        2. Верификация (WhatsMyName/Holehe)
-        3. Связи и графы (Maltego/GHunt)
-        4. Обогащение данных (SpiderFoot/Recon-ng)
-        
-        Для EMAIL-разведки строго следуй цепочке: theHarvester (поиск) -> Holehe (платформы) -> GHunt (Google) -> Итоговый AI-анализ.
+        При анализе придерживайся методологии анализа открытых источников без имитации "взломов" закрытых баз данных.
         
         ОБЯЗАТЕЛЬНО: Добавь раздел "### 🛡️ Анализ подлинности (Anti-Fake Filter)", где оценишь достоверность найденных аккаунтов.
-        ОБЯЗАТЕЛЬНО: Добавь раздел "### 📂 Утечки и История (Breach & History)".
-        ОБЯЗАТЕЛЬНО: Собери все ссылки в "### 🌐 Сводный список ресурсов".
+        ОБЯЗАТЕЛЬНО: Добавь раздел "### 🔍 Рекомендованные Google Dorks", предложи 3-5 формул Google Dorking для самостоятельного поиска.
+        ОБЯЗАТЕЛЬНО: Собери все РЕАЛЬНО НАЙДЕННЫЕ ссылки в "### 🌐 Сводный список ресурсов" (не придумывай ссылки).
         
         Весь текст на РУССКОМ языке в Markdown.
-        КРИТИЧЕСКИ ВАЖНО: Никогда не скрывай данные (номера, email).
         
-        Данные от модулей:
+        Данные от модулей для формирования отчета:
         ${allData}`;
 
       const summaryResponse = await callGeminiWithRetry(prompt, true);
@@ -765,14 +566,7 @@ export default function App() {
           </div>
           
           <div className="flex items-center gap-6">
-            <button 
-              onClick={() => setShowMaltegoInfo(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-500/20 transition-all"
-            >
-              <Network className="w-3 h-3" />
-              Maltego Integration
-            </button>
-            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                        <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
               <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
               <span className="text-[10px] font-mono text-emerald-500 uppercase font-bold">System Online</span>
             </div>
@@ -785,80 +579,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Maltego Info Modal */}
-      <AnimatePresence>
-        {showMaltegoInfo && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-            onClick={() => setShowMaltegoInfo(false)}
-          >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#121214] border border-white/10 rounded-2xl max-w-2xl w-full p-8 shadow-2xl"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-indigo-500/20 text-indigo-400">
-                    <Network className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-white">Maltego Integration</h2>
-                    <p className="text-sm text-slate-500">Свяжите OSINT Nexus с вашим графом Maltego</p>
-                  </div>
-                </div>
-                <button onClick={() => setShowMaltegoInfo(false)} className="p-2 hover:bg-white/5 rounded-lg transition-colors">
-                  <X className="w-5 h-5 text-slate-500" />
-                </button>
-              </div>
-
-              <div className="space-y-6 text-slate-300">
-                <section>
-                  <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-3 flex items-center gap-2">
-                    <div className="w-1 h-4 bg-indigo-500 rounded-full" />
-                    Вариант 1: Удаленная трансформация (API)
-                  </h3>
-                  <p className="text-xs leading-relaxed mb-4">
-                    Вы можете добавить OSINT Nexus как Remote Transform в Maltego. Используйте следующий URL для настройки:
-                  </p>
-                  <div className="bg-black/40 p-3 rounded-lg border border-white/5 font-mono text-[10px] text-indigo-300 break-all">
-                    {window.location.origin}/api/maltego/transform
-                  </div>
-                </section>
-
-                <section>
-                  <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-3 flex items-center gap-2">
-                    <div className="w-1 h-4 bg-indigo-500 rounded-full" />
-                    Вариант 2: Экспорт CSV
-                  </h3>
-                  <p className="text-xs leading-relaxed mb-4">
-                    После завершения сканирования вы можете экспортировать все найденные сущности в CSV-файл, который Maltego импортирует как узлы графа.
-                  </p>
-                  <button 
-                    onClick={exportToMaltego}
-                    className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    Экспортировать текущие результаты в CSV
-                  </button>
-                </section>
-
-                <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-xl">
-                  <p className="text-[10px] text-indigo-400 leading-relaxed italic">
-                    Примечание: Для работы API-трансформации убедитесь, что ваш сервер OSINT Nexus доступен из интернета или локальной сети, где запущен Maltego.
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+      
       <main className="max-w-[1600px] mx-auto p-6 grid grid-cols-12 gap-6">
         
         {/* Left Sidebar: Controls & Modules */}
@@ -870,6 +591,15 @@ export default function App() {
               <Zap className="w-4 h-4 text-sky-400" />
               <h2 className="text-sm font-semibold uppercase tracking-wider">Поиск цели</h2>
             </div>
+
+            {apiStatus && !apiStatus.configured && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-3">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <div className="text-[10px] text-red-400 font-medium">
+                  {apiStatus.message}
+                </div>
+              </div>
+            )}
 
             {/* Search Type Selector */}
             <div className="grid grid-cols-6 gap-1 p-1 bg-black/40 border border-white/5 rounded-lg">
@@ -951,16 +681,30 @@ export default function App() {
               </div>
               <button 
                 type="submit"
-                disabled={isScanning || !target}
+                disabled={isScanning || !target || (apiStatus !== null && !apiStatus.configured)}
                 className={cn(
                   "w-full py-2.5 rounded-lg text-sm font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2",
-                  isScanning 
+                  (isScanning || (apiStatus !== null && !apiStatus.configured))
                     ? "bg-slate-800 text-slate-500 cursor-not-allowed" 
                     : "bg-sky-600 hover:bg-sky-500 text-white shadow-lg shadow-sky-900/20"
                 )}
               >
-                {isScanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
-                {isScanning ? "Сканирование..." : "Запустить сканирование"}
+                {isScanning ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Сканирование...
+                  </>
+                ) : (apiStatus !== null && !apiStatus.configured) ? (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    Нужен API-ключ
+                  </>
+                ) : (
+                  <>
+                    <Shield className="w-4 h-4" />
+                    Запустить сканирование
+                  </>
+                )}
               </button>
             </form>
           </section>
